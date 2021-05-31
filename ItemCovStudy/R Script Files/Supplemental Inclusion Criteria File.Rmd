@@ -1,0 +1,390 @@
+---
+title: "Supplemental Inclusion Criteria File"
+date: "5/28/2021"
+output: 
+  rmdformats::downcute:
+    code_folding: hide
+    self_contained: true
+    thumbnails: false
+    lightbox: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Purpose of the Document
+
+This document serves to provide further detail regarding the multiple imputation and multivariate, multivariable regression methods used to define the sample's inclusion criteria. The HRS and HCAP data are rich with many important clinic data points; however, they do not include clinical diagnoses of cognitive status. As the aim of the CERAD eIRT study was to model memory, it was important to consider only those cases whose cognitive status was normal. Differences in response styles between normal cognitive controls and various dementia etiologies are well-known, so accidental inclusion of individuals with a neurocognitive disorder could affect the parameters of the models. In other words, it is reasonable to expect, based on existing literature, that the model predicting and describing item-level responses to the CERAD list learning test are different for those with and without neurocognitive disorders.
+
+Based on this *a priori* consideration, the inclusion criteria were an important starting point. Readers who have already reviewed the AsPredicted pre-registration of the study's hypotheses may have realized that the inclusion criteria outlined there and those discussed in the manuscript are different. Indeed, all of the models were fit on two different datasets because the initial criteria (based on a uniform cutoff of the MMSE) resulted in over-exclusion of Black participants ($\chi^2(2) = 29.57, p < .001, V = 0.13$, with Black-identifying participants having a Pearson residual of -2.76 for being labeled non-impaired compared to 3.15 for being labeled impaired). The fact that racial and ethnic minorities tend to score, on average, lower than non-Hispanic White individuals is well documented and should have been a consideration in the initial inclusion criteria. Regardless, it was determined that an alternative, more methodologically robust inclusion criteria ought to be established to satisfy the need to exclude individuals with possible neurocognitive impairments without under-representing individuals of minority backgrounds by over-emphasizing, raw, un-adjusted cognitive test scores.
+
+In order to pursue a more equitable inclusion criterion, multiple regression was considered as a basic starting place. Within neuropsychology, regression-based norms are relatively commonplace with these equations often including race, age, education, and sex as predictors of cognitive test performance. The benefit of the HRS and HCAP database is that many more socioeconomic and sociocontextual variables that could be used to inform the regression model. A further modeling hurdle was the fact that only raw scores were available for analysis. Raw scores on testing can often violate assumptions of OLS regression as they are clearly bounded, count variables with (often inherent) skew. Additionally, it is well-known that neuropsychological/cognitive tests tend to be correlated with one another even if they measure purportedly different cognitive domains/skills. A solution to these problems was to use multivariate, multiple regression that allowed for correlation among the residuals of each cognitive test. In order to allow for this correlation among residuals within the `brms` syntax, the likelihood of the regression had to be either multivariate normal or Student *t*. Since the raw data are unlikely to be multivariate normal and may be subject to outliers, a more robust multivariate Student *t* distribution was fit. The advantage of this specification is that the degrees of freedom for the Student *t* distribution can be specified as an unknown parameter with a weakly informative prior and thus estimated directly from the data themselves. The ability to directly model the shape of the Student *t* distribution does help some in capturing potentially skewed distributions where the central tendency of the distribution is heavily left or right shifted but then fades rapidly into narrower tails.
+
+While there is very little missing data in the HRS and HCAP data sources, it was important to be able to estimate cognitive testing scores for every participant so as to not introduce potential selection bias by omitting individuals with less overall complete data. Since a goal was to include a large number of sociocontextual demographic information, this meant using multiple imputation in order to get reasonable guesses for the missing data and then propagating this uncertainty to the Bayesian-estimated posteriors. Once this information was obtained, there was then a need to use the regression to identify those with questionable cognitive status. This was done by comparing the observed scores to their predictions, standardizing this difference, and then dichotomizing this difference into either "normal" (no more than a standard deviation below the expected score) or "abnormal" (a standard deviation or more below the expected score). The result of this procedure is a series of dichotomous 0/1 variables for each cognitive test. In order to maintain an empirically-based understanding of the sample, these dichotomous variables were then subjected to latent class analysis to identify homogeneous groups of individuals based on their relative cognitive performances across all tests. Inclusion was then based on membership to the latent class that appears to correspond to a cognitively normal group of individuals.
+
+This document provides the details of each of these steps since there was not space in the manuscript to describe this process in adequate detail. Accompanying this document is also the R script file that was created during the study process. Someone who acquires access to the appropriate files through the HRS should be able to run the script file (with some minimal alterations to ensure that the files are read from the correct files) and then get results that match those shown here (within some margin of error due to randomness in some of the methods, though the use of the same seed in R and `brms` should reduce the impact of this).
+
+Note that by default all the code used to generate the results in this document is not shown. As some readers may be interested in this code, it is possible to turn on its display by toggling the switch in the top right of this page. Every output from the document also has a toggle button (a small button with the word "code") that, when pressed, will show the code used to produce the output. Additionally, the raw Markdown file (*.rmd) is available on the github with the R script.
+
+## Overview of Sections
+
+While the preceding section describes the general motivations for each step of the inclusion criterion analyses, it is still expedient to spell out what each section of this document will do so that readers can jump to which ever section is of interest and anticipate what to find there.
+
+The first section overviews the multiple imputation process and results. Shown in this section are general descriptions of the data's missingness as well as diagnostic analyses of the multiple imputation results. These diagnostic plots include visual inspection of convergence, overlay of imputed and observed values, and propensity score plots for missing versus observed cases as a function of each variable.
+
+The second section then provides details on the multivariate, multiple regression. This includes discussion of the included predictors, their influence in prediction of each outcome, posterior predictive checks of the model, and general model performance (i.e., $R^2$).
+
+Finally, the last section provides the results of the latent class analysis. This includes the number of classes identified, the response patterns (i.e., patterns of 0/1 across cognitive tests) that correspond to each latent class, and the reasoning for choosing the latent class that we did as the "cognitively normal" group.
+
+## What's Being Done
+
+Since the corresponding R script for running all the models and analyses of this study are included, it can be helpful to see what objects from that script are being used here in case someone wants to replicate the results. The code below shows the objects being called for this document, and they are named in accordance to the fit and saved objects in the R script. Readers may need to toggle the "code" button below to see this output. Alternatively, all the raw code for this Markdown document is also uploaded on Github, so every code block can be seen from that RMD file.
+
+```{r SetupData}
+#read in needed data
+df_resp <- readRDS("Data_wide.rds")
+df_imp <- readRDS("Data_imputed.rds")
+CogRegression <- readRDS("Fitted Models/cognitiveDiagnosisRegression.rds")
+LCAres <- readRDS("LatentClassModel.rds")
+
+#load in required packages
+#wrapping in suppressPackageStartupMessages() done just to reduce print out in document
+suppressPackageStartupMessages(library(brms))
+suppressPackageStartupMessages(library(mice))
+suppressPackageStartupMessages(library(tidyverse))
+suppressPackageStartupMessages(library(ggplot2))
+suppressPackageStartupMessages(library(kableExtra))
+```
+
+# Multiple Imputation Results
+
+Multiple imputation is a robust method for estimating unobserved/missing data points by capitalizing on the relationship between missing values and the observed data. In the simplest case, imputation involves substituting some general value (e.g., the mean or median) for each missing value. This case is a highly conservative method for accounting for missing data as it assumes that the best we can do for guessing the possible value of the data is to assume that it is likely close to some central tendency of the data. Regression methods are a logical next step for making more informed guesses for missing data by drawing on the fact that variables are correlated and thus information about one can be approximated by looking at other observed data points. These simple imputation methods still have significant methodological challenges. The largest challenge to overcome is that simply estimating a value for a missing variable and treating this estimation as a "close enough" observation will introduce bias. While powerful, regression-based methods have multiple sources of error: there is uncertainty in the prediction itself (i.e., prediction error or residuals) and there is uncertainty about the true values of the regression predictors (i.e., estimation error or sampling error). One method for addressing this bias is to iteratively impute missing values so that there are a range of different estimates given for a single missing value. This range of estimated values can then be passed to statistical analyses in order to introduce empirically the uncertainty of the true unobserved value. This study utilized the `mice` package for *R* in order to perform multiple imputation of missing data points. The `mice` package performs <u>m</u>ultiple <u>i</u>mputation by <u>c</u>hained <u>e</u>quations, and details of the underlying methodology can be found in [van Buuren and Groothuis-Oudshoorn (2011)] (https://www.jstatsoft.org/article/view/v045i03) and [van Buuren (2018)] (https://stefvanbuuren.name/fimd/). The remainder of this section describes the missingness of the data of interest and the imputation methods and results.
+
+The first issue with missing data is that only some missing data matters. In the case of the regressions to predict missing cognitive raw scores, we were interested only in those variables that might be usefully predictive of most cognitive tests. Historically in neuropsychology, these variables have been demographic variables like age, sex, race, and years of education. Given more recent research on racial and ethnic differences in raw scores across neuropsychological tests, it also made sense to extend these variables to broader socioeconomic and contextual factors like rurality, annual income, and parental educational status. While the HRS data resources include thousands of possible variables to choose from, the general recommendation in multiple imputation is to choose between 15 and 25 variables, including all variables that will appear in the complete-data model (van Buuren, 2018). We make no effort to say that the variables chosen were the best variables for including in the model; however, we believe them to be superior to standard demographic regression-based models and they achieved the intended goal of producing a classification standard that did not systematically over-exclude racial minorities. Further research on what variables are most useful is certainly needed, and hopefully, this serves as a starting place for researchers.
+
+The data variables selected for the regression model and thus the multiple imputation were all of the cognitive tests, standard demographic variables, and then sociocontextual variables. The list below summarizes these groupings of variables:
+
+**Cognitive Tests**
+
+*   MMSE
+*   Animals
+*   CERAD List Learning (immediate recall, delayed recall, and discriminability)
+*   WMS Logical Memory Story B (immediate recall, delayed recall, and recognition)
+*   CERAD Constructional Praxis (immediate and delayed recall)
+*   Symbol Digit Modalities Test (total correct)
+*   Trail Making Test Parts A and B (seconds to complete)
+*   Raven's Progressive Matrices (Blocks A and B)
+
+**Demographic Variables**
+
+*   Age
+*   Sex
+*   Ethnicity
+*   Race
+*   Years of education
+*   Impaired (by informant report of prior cognitive diagnosis or on the Blessed Dementia Rating Scale)
+
+**Sociocontextual Variables**
+
+*   Rurality (urban, suburban, or exurban)
+*   Total value of assets
+*   Financial wealth
+*   Total annual income
+*   Ratio of financial means to household's federal poverty line
+*   Maternal years of education
+*   Paternal years of education
+
+The resulting list of variables include 27 variables. With a reduced dataset ready for the multiple imputation, the next consideration is the number of imputations needed to reasonably approximate the missing data. While greater number of imputations are always better, there is a sharp computational demand trade-off. The imputation process itself can be fairly intensive, meaning that running more iterations or imputations can require a sizable amount of computing time and power. Furthermore, each imputed dataset has to be run in the model. Since the model is a Bayesian model, this means that each dataset must be run over four chains for a set number of warmup and post-warmup samples. Those familiar with Bayesian methods will recognize the computational demand potentially inherent in running the same model multiple times for different imputed datasets. For general illustration purposes, some of the IRT models ran for this study required 15 hours to fit, so if this had to be done on imputed data, then this is 15 hours times the number of imputation to fit a single model. To determine the number of reasonable imputations needed, it is useful to evaluate the overall level of missingness. Shown below is a figure to visualize the overall level and pattern of missingness.
+
+```{r MissingnessPattern}
+empty <- md.pattern(df_resp[, c("MMSE", "Animals", "CERADdel", "LMIM", "CPIM", "SDMT", "CPDM", "LMDM", "LMrcg", "TMTA", "TMTB", "CERADimm", "CERADdisc",
+                        "Ravens", "UrbanRural", "Age", "TotalAssets", "FinancialWealth", "TotalIncome", "PovertyRatioInst", "Gender", "Ethnicity",
+                        "Race", "Education", "MaternalEdu", "PaternalEdu", "Impaired")])
+```
+
+Due to the size of the dataset, the missingness plot can be challenging to read. Each pattern of missing data is listed on a unique row and each column corresponds to one of the variables of interest. The cell produced from an intersecting row and column is colored blue if that participant has an observation for that variable, and it is colored red, if that observation is missing. The numbers on the left count the number of participants with that row's pattern of missing data while the numbers on the left count the number of missing variables in that pattern. Numbers at the bottom of the table correspond to the number of cases missing the respective variable. As can be seen from a visual gestalt of the figure is that most participants have the majority of data. Still, the figure does not tell us much about the level of missingness since it is very cluttered. One potentially useful value to know for each value is the number of patterns of missing data occur as a function of whether a given variable is missing. The following table shows the number of patterns of missing data corresponding to each variable:
+
+```{r MissingPatterns}
+matrix(apply(empty[, 1:27], 2, function(x) {sum(x == 0)}),
+       dimnames = list(c("MMSE", "Rurality", "Age", "Total Assets", "Financial Wealth", "Total Income", "Ratio to Poverty Line", "Sex", "Impaired", "Animals", "Race", "Ethnicity", "Education", "CERAD Immediate", "CERAD Discriminability", "CERAD Delayed", "Constructional Praxis Immediate", "Logical Memory Immediate", "Ravens", "Constructional Praxis Delayed", "Logical Memory Delayed", "Logical Memory Recognition", "Trails A", "Symbol Digit Modality", "Trails B", "Maternal Education", "Paternal Education"), "Number of Patterns")) %>%
+  kable(caption = "Patterns of Missing Data by Variable", align = rep('c', 27)) %>%
+  kable_classic(full_width = FALSE, position = "center")
+```
+
+Just as a quick point of clarification, the `md.pattern()` function from `mice` does alter the order of the variables, so this is why there is no clear logical order of the variables in the table above. Rather than re-arrange these rows, however, the order was retained as it corresponds (from top to bottom) to the columns in the preceding figure (from left to right). As can be seen from this simple table, missing Trails B and Symbol Digits Modality were associated with the most patterns of missingness. The next variable that, when missing, was associated with a fair number of missingness patterns was the delayed trials of Logical Memory. These patterns generally suggest that those with greater cognitive impairment were more likely to have missing data elsewhere since these tests are among the most challenging included in the battery. Another metric to consider is which pattern(s) correspond to the most amount of missing data. The table below shows the missingness patterns that correspond to missing the most number of variables.
+
+```{r MostMissingPattern}
+matrix(empty[which(empty[, 28] == max(empty[1:104, 28])), 1:27],
+       nrow = 2, ncol = 27, byrow = FALSE,
+       dimnames = list(c("Pattern 1", "Pattern 2"), c("MMSE", "Rurality", "Age", "Total Assets", "Financial Wealth", "Total Income", "Ratio to Poverty Line", "Sex", "Impaired", "Animals", "Race", "Ethnicity", "Education", "CERAD Immediate", "CERAD Discriminability", "CERAD Delayed", "Constructional Praxis Immediate", "Logical Memory Immediate", "Ravens", "Constructional Praxis Delayed", "Logical Memory Delayed", "Logical Memory Recognition", "Trails A", "Symbol Digit Modality", "Trails B", "Maternal Education", "Paternal Education"))) %>%
+  kable(caption = "Patterns with the Most Missing Data", align = rep('c', 27)) %>%
+  kable_classic(full_width = FALSE, position = "center")
+```
+
+Consistent with the previous observation, it appears that a likely explanation for missingness is the level of cognitive impairment. As demonstrated in the table above, there are two different patterns that have the most missing variables (missing 12 variables out of the 27 examined), and these patterns clearly occur among the cognitive tests. While not certain, a reasonable guess for why this would be the case is either a participant declines the cognitive tests or would be considered too impaired to complete or attempt the tests. This indicates that it's important to include the informant-based report of impairment in the imputation step since this seems likely to be related to the missingness. Up until this point, however, we have not actually looked at the overall rate of missingness in the dataset, just patterns of it. The following table summarizes the percentages of missing data points for each variable of interest:
+
+```{r MissingPercentages}
+Missingness <- function(x) {
+  sum(is.na(x)) / length(x) * 100
+} #function computes percent of missing data
+
+matrix(sapply(df_resp[, c("MMSE", "Animals", "CERADimm", "CERADdel", "CERADdisc", "LMIM",  "LMDM", "LMrcg", "CPIM", "CPDM", "SDMT", "TMTA", "TMTB", "Ravens", "Gender", "Ethnicity", "Race", "Education", "Age", "UrbanRural", "TotalAssets", "FinancialWealth", "TotalIncome", "PovertyRatioInst", "MaternalEdu", "PaternalEdu", "Impaired")], function(x) Missingness(x)), nrow = 27, ncol = 1,
+       dimnames = list(c("MMSE", "Animals", "CERAD Immediate", "CERAD Delayed", "CERAD Discriminability", "Logical Memory Immediate", "Logical Memory Delayed", "Logical Memory Recognition", "Constructional Praxis Immediate", "Constructional Praxis Delayed", "Symbol Digits Modality", "Trails A", "Trail B", "Ravens", "Sex", "Ethnicity", "Race", "Education", "Age", "Rurality", "Total Assets", "Financial Wealth", "Total Income", "Ratio to Poverty Line", "Maternal Education", "Paternal Education", "Impaired"), "Percent Missing")) %>%
+  kable(caption = "Percentage of Missing Data by Variable", digits = 2, align = rep('c', 27)) %>%
+  kable_classic(full_width = FALSE, position = "center")
+```
+
+As is clear from the table above, missingness in the database itself is quite scarce considering the total number of individuals in the database. The overall average percentage of missing data is less than 2% for the whole sample, and of the 3167 participants in the sample, a total of 2431 (76.76%) of the sample have no missing data in any of these variables. To further clarify the rate of completeness in this particular dataset, 3075 participants (97.10% of the total sample) are missing data for just 3 or fewer variables. van Buuren (2018) notes that between 5 and 20 imputations are sufficient for "moderate missingness." While moderate levels of missingness is not defined, it is likely fair to conclude that the current dataset has no worse that moderate missingness and may even have "mild" levels of missingness. While not a hard rule, van Buuren (2018) does suggest the following guidance: "if calculation is not prohibitive, we may set *m* [number of imputations] to the average percentage of missing data." In this case, that average is less than 2%, so the total number of imputations was set to 5 to be on the low end of the recommended imputations for moderate missingness.
+
+Multiple imputation generating 5 different datasets with unique imputed values for every missing value was then conducted. There are many different ways of imputing reasonable values, and the `mice` package offers a wide array of these methods. In this case, the default methods provided by the `mice` package made sense for the missing data types. To make this step more transparent to readers, the table below shows the imputation method used for each variable that required imputation.
+
+```{r ImputationMethods}
+methods <- df_imp$method
+methods <- methods[which(methods != "")]
+methods <- methods[c(1, 11, 2, 12, 3, 7:8, 4, 6, 5, 9:10, 13:18)]
+methods <- ifelse(methods == "pmm", "Predictive Mean Matching", ifelse(methods == "logreg", "Logistic Regression", "Polytomous Logistic Regression"))
+matrix(methods, nrow = 18, ncol = 1, dimnames = list(c("Animals", "CERAD Immediate", "CERAD Delayed", "CERAD Discriminability", "Logical Memory Immediate", "Logical Memory Delayed", "Logical Memory Recognition", "Constructional Praxis Immediate", "Constructional Praxis Delayed", "Symbol Digits Modality", "Trails A", "Trails B", "Ravens", "Ethnicity", "Race", "Education", "Maternal Education", "Paternal Education"), "Method")) %>%
+  kable(caption = "Imputation Method by Missing Variable", align = 'c') %>%
+  kable_classic(full_width = FALSE, position = "center")
+```
+
+The methods are most easily separated into those for continuous versus discrete variables. For all of the continuous variables (all variables except race and ethnicity), the method used is predictive mean matching. This method is a particularly flexible and useful imputation method that is well-suited for this particular application. A common issue with standard regression methods for count variables (e.g., total number of correct responses on a test) is that it is easy to estimate impossible values. For example, a regression might predict a score that is less than 0 or that exceeds the maximum number of points possible. Additionally, a regression-based predicted score is almost always some fractional value that is not possible in count data. Predictive mean matching essentially truncates estimates to observed data by taking the estimate and then create a subset of candidate values from the complete cases with predicted values closest that predicted value of the missing observation. From this subset of candidate values, one is randomly selected to replace the missing value. In this way, the imputed values are only ever values that are actually observable.
+
+The categorical variables with missing data points were just race and ethnicity. In the case of ethnicity, a simple logistic regression is useful for predicting the missing value since the variable is dichotomous (Hispanic or non-Hispanic). In the case of race, there are three levels of the factor (White, Black, and Other), so a multinomial/polytomous expansion of the logistic regression is needed. Importantly, these methods assume no ordering of the categories and thus are appropriate for purely nominal data types.
+
+With these methods and the number of imputations in mind, it is important to visually inspect the resulting imputations. The first step is to consider whether the imputation chains mixed. The trace plots of the chains are shown below.
+
+```{r ImputationChains}
+plot(df_imp)
+```
+
+There are some points of clarification to make for understanding the plots. First, the color of each line corresponds to one of the imputations, so each plot has 5 different colored lines. Second, the standard deviations of the estimated values are also estimated. In cases where there was only 1 case with a missing value (i.e., Animals and race), it is not possible to estimate the standard deviation of the imputed values. Third, interpretation of the categorical variables needs to be done cautiously since they are different than the continuous variables. The plots can look very jagged and seem like they mix poorly until we recall that these can only be values of 0 or 1 (for ethnicity - 0, 1, or 2 for race). Thus, it may seem like there is poor mixing of chains, but this is potentially just an artifact of the limited ranges of estimates. Interpretation of the trace plots for multiple imputation are similar to that of MCMC chains; however, there are far fewer iterations to examine. Overall, these plots do not suggest any issues with estimates getting caught at certain values and generally converge despite the relatively small number of iterations.
+
+Once we are comfortable with the mixing of the imputation chains, it is important to also examine what those imputed distributions look like in comparison to the observed data. The plots below overlay the observed and missing distributions of each variable that had missing data.
+
+```{r MissingDistributions}
+densityplot(df_imp)
+```
+
+Consistent with our earlier hypotheses, the missing data distributions all are generally left shifted with a few notable exceptions. In the case of the Trail Making Tests, there is  bimodal distribution of the missing data (red) with one mode slightly above the mean time to complete and then another mode at the discontinuation time (300 seconds or 5 minutes). Unlike all the other cognitive tests, worse scores on the Trail Making Test are these right shifted distributions. With that exception in mind, the imputed data distributions for all of the cognitive tests suggest that those with missing values were also the most impaired individuals in the sample. The other important exception to the left-shifted rules are for the demographic variables that were estimated. In these plots, there is little difference between the observed and missing data distributions, suggesting that educational achievement of the participant or their parents were not related to missingness.
+
+Further examination of the missingness patterns can be examined by visualizing the probability that a participant has missing data as a function of each variable. This is done by computing the propensity score for having missing data (i.e., the probability that a case is missing data) and then plotting that propensity score against each of the imputed variables. For clarity, propensity scores are the estimated probability of group membership as predicted from a logistic regression. In this case, the logistic regression is based on all the same predictors as the multiple imputation. The plots below provide this visual description of missingness propensity.
+
+```{r PropensityScores}
+#run model for propensity scores of missing vs. complete observations
+prop <- with(df_imp, glm(ici(df_imp) ~ MMSE + Animals + CERADimm + CERADdel + CERADdisc + LMIM + LMDM + LMrcg + CPIM + CPDM + SDMT + TMTA + TMTB + Ravens + Gender + Ethnicity + Race + Education + Age + UrbanRural + TotalAssets + FinancialWealth + TotalIncome + PovertyRatioInst + MaternalEdu + PaternalEdu + Impaired,
+                         family = binomial))
+
+#generate the propensity scores
+ps <- rep(rowMeans(sapply(prop$analyses, fitted.values)),
+          df_imp$m + 1)
+
+#generate plots
+xyplot(df_imp, Animals ~ ps | as.factor(.imp), pch = c(1, 19), cex = c(0.8, 1.2), col = mdc(1:2),
+       xlab = "Probability of Missing Observation",
+       ylab = "Animal Fluency Raw Score")
+xyplot(df_imp, CERADimm ~ ps | as.factor(.imp), pch = c(1, 19), cex = c(0.8, 1.2), col = mdc(1:2),
+       xlab = "Probability of Missing Observation",
+       ylab = "CERAD Words Recalled (Immediate)")
+xyplot(df_imp, CERADdel ~ ps | as.factor(.imp), pch = c(1, 19), cex = c(0.8, 1.2), col = mdc(1:2),
+       xlab = "Probability of Missing Observation",
+       ylab = "CERAD Words Recalled (Delayed)")
+xyplot(df_imp, CERADdisc ~ ps | as.factor(.imp), pch = c(1, 19), cex = c(0.8, 1.2), col = mdc(1:2),
+       xlab = "Probability of Missing Observation",
+       ylab = "CERAD Recognition Discriminability")
+xyplot(df_imp, LMIM ~ ps | as.factor(.imp), pch = c(1, 19), cex = c(0.8, 1.2), col = mdc(1:2),
+       xlab = "Probability of Missing Observation",
+       ylab = "Logical Memory Recall (Immediate)")
+xyplot(df_imp, LMDM ~ ps | as.factor(.imp), pch = c(1, 19), cex = c(0.8, 1.2), col = mdc(1:2),
+       xlab = "Probability of Missing Observation",
+       ylab = "Logical Memory Recall (Delayed)")
+xyplot(df_imp, LMrcg ~ ps | as.factor(.imp), pch = c(1, 19), cex = c(0.8, 1.2), col = mdc(1:2),
+       xlab = "Probability of Missing Observation",
+       ylab = "Logical Memory Recognition")
+xyplot(df_imp, CPIM ~ ps | as.factor(.imp), pch = c(1, 19), cex = c(0.8, 1.2), col = mdc(1:2),
+       xlab = "Probability of Missing Observation",
+       ylab = "Constructional Praxis (Immediate)")
+xyplot(df_imp, CPDM ~ ps | as.factor(.imp), pch = c(1, 19), cex = c(0.8, 1.2), col = mdc(1:2),
+       xlab = "Probability of Missing Observation",
+       ylab = "Constructional Praxis (Delayed)")
+xyplot(df_imp, SDMT ~ ps | as.factor(.imp), pch = c(1, 19), cex = c(0.8, 1.2), col = mdc(1:2),
+       xlab = "Probability of Missing Observation",
+       ylab = "Symbol Digits Modality Test")
+xyplot(df_imp, TMTA ~ ps | as.factor(.imp), pch = c(1, 19), cex = c(0.8, 1.2), col = mdc(1:2),
+       xlab = "Probability of Missing Observation",
+       ylab = "Trail Making Test Part A")
+xyplot(df_imp, TMTB ~ ps | as.factor(.imp), pch = c(1, 19), cex = c(0.8, 1.2), col = mdc(1:2),
+       xlab = "Probability of Missing Observation",
+       ylab = "Trail Making Test Part B")
+xyplot(df_imp, Education ~ ps | as.factor(.imp), pch = c(1, 19), cex = c(0.8, 1.2), col = mdc(1:2),
+       xlab = "Probability of Missing Observation",
+       ylab = "Years of Education")
+xyplot(df_imp, MaternalEdu ~ ps | as.factor(.imp), pch = c(1, 19), cex = c(0.8, 1.2), col = mdc(1:2),
+       xlab = "Probability of Missing Observation",
+       ylab = "Maternal Educational Attainment")
+xyplot(df_imp, PaternalEdu ~ ps | as.factor(.imp), pch = c(1, 19), cex = c(0.8, 1.2), col = mdc(1:2),
+       xlab = "Probability of Missing Observation",
+       ylab = "Paternal Educational Attainment")
+xyplot(df_imp, Race ~ ps | as.factor(.imp), pch = c(1, 19), cex = c(0.8, 1.2), col = mdc(1:2),
+       xlab = "Probability of Missing Observation",
+       ylab = "Race")
+xyplot(df_imp, Ethnicity ~ ps | as.factor(.imp), pch = c(1, 19), cex = c(0.8, 1.2), col = mdc(1:2),
+       xlab = "Probability of Missing Observation",
+       ylab = "Ethnicity")
+```
+
+To clarify the observed plots, each grid (numbered 0-5) correspond to either the observed data (0) or one of the imputed datasets (1-5). The blue diamonds all correspond to an observed data point while the red circles each represent an imputed data point. Note that the blue diamonds across plots 0-5 are all identical. Potentially the easiest plot to examine first is the one for Animal fluency since there is just a single missing data point that was imputed. In this plot, it is relatively clear that this observation had a low propensity score for being missing and its imputed estimate was that the person would have scored somewhere in the average range compared to the rest of the sample. The 0 grid for Animal fluency is also useful to examine in the context of the working hypothesis that missingness was related to cognitive impairment. Looking at the left-hand side of the plot (i.e., the lowest propensity for having missing observations), there is a good overall range of possible Animal fluency scores, but as we go to the right (i.e., higher probabilities of missing data), we see that the range of Animal fluency scores becomes progressively restricted. This overall shape is mirrored in the other cognitive test plots and suggests that certainly one reason for missing data is cognitive impairment; however, there also appears to be other factors as well since there are plenty of cases with very poor scores who still are given low propensity estimations for being missing.
+
+Another important takeaway from the above plots is the fact that there doesn't seem to be a clear pattern of missingness by race or ethnicity. Examination of these plots demonstrate that, broadly speaking, individuals of all racial and ethnic groups had similarly wide propensity scores estimated. Similarly, there was no a heavy concentration of high propensity scores that separated the racial or ethnic groups. Some additional exploration is possible to further inspect the reason for missing data in the sample. The plots below show the propensity scores against MMSE raw scores and informant-based report of impairment.
+
+```{r ExtraPropensities}
+xyplot(df_imp, MMSE ~ ps, pch = c(1, 19), cex = c(0.8, 1.2), col = mdc(1:2),
+       xlab = "Probability of Missing Observation",
+       ylab = "MMSE Raw Score")
+xyplot(df_imp, Impaired ~ ps, pch = c(1, 19), cex = c(0.8, 1.2), col = mdc(1:2),
+       xlab = "Probability of Missing Observation",
+       ylab = "Informant Report of Impairment")
+```
+
+Again, the plots suggest there is a relationship between having impairment and missing data; however, this is clearly not the only cause of missingness. If this were the case, then the differences in propensity would be much clearer. In the case, of informant report in particular, there is clear evidence that those without impairment are still sometimes estimated as having a high probability of missing data. It's possible that this reflects a multivariate dependency between objective cognitive testing and functional impairment; however, it's also possible that there are other sociodemographic variables or neuropsychiatric factors that might explain missingness. Regardless of the cause of any missingness not at random, the multiple imputation methods used and described here appear to be robust and reasonable approximations.
+
+# Cognitive Prediction Regression
+
+With the imputed data prepared, the regression model to predict raw scores and serve as a standard for "abnormal" cognitive test performance could be fit. As with the regression models fit in the main study, these models were fit in `brms`. The regression model included all of the same variables used in the multiple imputation model. The multivariate outcomes were all of the cognitive tests with the exception of Raven's Progressive Matrices. The remaining variables (including Raven's Progressive Matrices) were used as predictors. 
+
+Priors for the regression were specified per outcome with generic priors for the multivariate component. All regression coefficient priors were specified as normal distributions with mean of 0 and standard deviation of 1. Under this parameterization, this means that we're placing an approximately 68% probability that regression coefficients are no larger than |1| and a 95% probability that regression coefficients are no larger than |2|. The data in this case are large, so the priors can easily be dominated by the observations in the case where these priors are incorrect; however, given the scales of the predictors and outcomes, these priors on the regression coefficients appeared reasonable. For priors on the intercepts, each outcome variable was considered separately. These intercept priors were specified as Student *t* distributions with 3 degrees of freedom, centered on the approximate mean of the raw distribution, and standard deviation 3x the magnitude of the raw standard deviation. In cases where the regression coefficients are all 0, the intercept of a regression will be the mean of the outcome variable, so centering the prior around this "null" value is a reasonable first guess for its true value. The scale of the intercept is then multiplied by 3 from the raw distribution to ensure that prior is wide and thus weakly informative. Again, the data are very large and could overpower even fairly strong priors, but this was still undertaken as a disciplined prior specification for these purposes.
+
+A special caveat and warning should be provided for readers and those who intend to reproduce the analyses. In order to ultimately compute the residuals of the model, the number of iterations and warmup samples had to be left at the default number 1,000 each per chain. Running more iterations or more warmups ultimately caused the predictive errors to be too large to run within R. As currently specified, the resulting array of residuals was 6.6 GB in size. To explain why this is the case, one needs to remember that each model is run on 4 chains (1000 warmup + 1000 post-warmup iterations). Each model then has to be run on the 5 imputed datasets (resulting in 40,000 total iterations). In the end, a total of 20,000 posterior samples are saved for inference, so when residuals need to be computed, the 14 outcome variables all produce a combined multivariate predictive distribution based on these 20,000 posterior samples. In short, the model had to be fit on fewer than ideal iterations. While such few iterations is not a problem for *Stan*'s adaptive Hamiltonian Monte Carlo estimator with respect to convergence or performance, it does limit the ability to reliably estimate the tails of distributions. Fortunately, the primary aim of this particular model is to characterize the central tendency since the interest is ultimately below average performances. For any reader seeking to replicate the methods here, it is important to consider computing resources before running the model and before trying to run the model for more iterations. The personal laptop used for these analyses has an Intel i7-9750H CPU @ 2.60GHz, 32GB of RAM, and runs all 64-bit applications.
+
+With this background in mind, it is now appropriate to examine the model. First, we examine the validity of the modeling process by ensuring that the chains mixed and that the posterior was adequately able to be explored/sampled. This is done by analyzing the $\hat{R}$, effective sample sizes, trace plots, and diagnostic plots for the model. Details about these plots are provided in the other supplementary file addressing the model fits, so readers are encouraged to review that document for explanations of the following plots.
+
+```{r RegressionDiagnostics}
+mcmc_plot(CogRegression, type = "rhat_hist", binwidth = 0.0001)
+mcmc_plot(CogRegression, type = "neff_hist", binwidth = 0.1)
+mcmc_plot(CogRegression, type = "trace", regex_pars = "b_MMSE")
+mcmc_plot(CogRegression, type = "trace", regex_pars = "b_Animals")
+mcmc_plot(CogRegression, type = "trace", regex_pars = "b_CERADimm")
+mcmc_plot(CogRegression, type = "trace", regex_pars = "b_CERADdel")
+mcmc_plot(CogRegression, type = "trace", regex_pars = "b_CERADdisc")
+mcmc_plot(CogRegression, type = "trace", regex_pars = "b_LMIM")
+mcmc_plot(CogRegression, type = "trace", regex_pars = "b_LMDM")
+mcmc_plot(CogRegression, type = "trace", regex_pars = "b_LMrcg")
+mcmc_plot(CogRegression, type = "trace", regex_pars = "b_CPIM")
+mcmc_plot(CogRegression, type = "trace", regex_pars = "b_CPDM")
+mcmc_plot(CogRegression, type = "trace", regex_pars = "b_SDMT")
+mcmc_plot(CogRegression, type = "trace", regex_pars = "b_TMTA")
+mcmc_plot(CogRegression, type = "trace", regex_pars = "b_TMTB")
+mcmc_plot(CogRegression, type = "trace", regex_pars = "sigma_")
+mcmc_plot(CogRegression, type = "nuts_divergence")
+mcmc_plot(CogRegression, type = "nuts_treedepth")
+```
+
+One issue that comes from fitting multiple datasets with the same model is that there can be false positives on the $\hat{R}$ statistic (see [here] (https://cran.r-project.org/web/packages/brms/vignettes/brms_missings.html) for details). We can confirm that there is no issue with chain mixing from visual inspection of the trace plots and then also calling the $\hat{R}$ statistics directly from the model itself as done in the table below.
+
+```{r TrueRhats}
+CogRegression$rhats %>%
+  select(starts_with("b_")) %>%
+  kable(caption = "Chain Convergence by Imputed Dataset", align = 'c', digits = 4) %>%
+  kable_classic(full_width = FALSE, position = "center")
+```
+
+Note that for convenience, not all of the values are shown above. Since the trace plots for every estimated predictor is shown above, it was determined to not include a full table summarizing the $\hat{R}$ for every parameter across the five imputed datasets. For readers interested in the values of the various predictors, the following provides a description of the posterior estimates of each predictor in the model.
+
+```{r PredictorSummaries}
+matrix(fixef(CogRegression), ncol = 4,
+       dimnames = list(c("MMSE", "Animals", "CERAD Delayed", "Logical Memory Immediate", "Constructional Praxis Immediate", "Symbol Digits Modality", "Constructional Praxis Delayed", "Logical Memory Delayed", "Logical Memory Recognition", "Trails A", "Trails B", "CERAD Immediate", "CERAD Discriminability", rep(c("Ravens", "Rurality: Suburban", "Rurality: Exurban", "Rurality: Not Classified", "Age", "Total Assests", "Financial Wealth", "Total Income", "Poverty Line Ratio", "Sex: Female", "Ethnicity: Hispanic", "Race: Black", "Race: Other", "Education", "Maternal Education", "Paternal Education", "Impaired: Yes"), 13)), c("Estimate", "Std. Error", "95% CI LB", "95% CI UB"))) %>%
+  kable(caption = "Regression Coefficients Estimated in the Multivariate Regression", align = 'c', digits = 2) %>%
+  kable_classic(full_width = FALSE, position = "center") %>%
+  pack_rows("Intercepts", 1, 13) %>%
+  pack_rows("MMSE", 14, 30) %>%
+  pack_rows("Animals", 31, 47) %>%
+  pack_rows("CERAD Delayed", 48, 64) %>%
+  pack_rows("Logical Memory Immediate", 65, 81) %>%
+  pack_rows("Constructional Praxis Immediate", 82, 98) %>%
+  pack_rows("Symbol Digits Modality", 99, 115) %>%
+  pack_rows("Constructional Praxis Delayed", 116, 132) %>%
+  pack_rows("Logical Memory Delayed", 133, 149) %>%
+  pack_rows("Logical Memory Recognition", 150, 166) %>%
+  pack_rows("Trails A", 167, 183) %>%
+  pack_rows("Trails B", 184, 200) %>%
+  pack_rows("CERAD Immediate", 201, 217) %>%
+  pack_rows("CERAD Discriminability", 218, 234)
+```
+
+Readers are cautioned to avoid over-interpreting the results of the table above. The objective of this analysis was to produce a means of reasonably estimating cognitive test performance in a way that reduces the risk of biased over-exclusion of individuals from minority backgrounds. As a result, the scales for some variables make results seem meaningless. For example, when rounded to two decimal places, the coefficients for the various financial variables are essentially zero an thus seemingly irrelevant. In reality, however, these very small coefficients are sensible considering that, for example, the average financial wealth in the sample is $178,415.80 (SD = 678,850.10). Considering that the largest raw score being predicted is the 300 second cutoff for the Trail Making Test, the regression coefficient scale is necessarily very small. If the intention was presenting this model and testing whether certain variable mediated, for example, the effects of race, then there would need to be appropriate transformation of the data to facilitate adequate communication of these variables' importance. In this case, such transformations do not change final predictions, so they were not made *a priori*. While this reduced some data cleaning efforts (e.g., no need to consider how to scale data across multiply imputed datasets), the downside is that it is difficult to understand what the variables might convey for applications like clinical practice. Thus, again, readers are encouraged to cautiously evaluate the above results with this in mind.
+
+Another aspect to consider from the regression is how well it recovers the data generation process that led to the observed data to begin with. A particularly useful way of checking whether a model may be misspecified is via posterior predictive checks. Again, details of posterior predictive checks are discussed in the manuscript and also in the other supplementary material. Readers less familiar with these plots are encouraged to review those documents. Shown below are the posterior predictive checks for each of the outcomes in the multivariate regression.
+
+```{r CogPPCs}
+#note that functions are wrapped in suppressWarnings() to avoid reprinting the same default warning from 'brms'
+#Warning reads: "Using only the first imputed data set. Please interpret the results with caution until a more principled approach has been implemented"
+#Warning stems from 'brms' storing just one of the imputed datasets, which then gets used for the post-processing (meaning the other 4 datasets used to derive the posterior are not stored and thus unused in post-processing)
+
+suppressWarnings(pp_check(CogRegression, resp = "MMSE", nsamples = 25) +
+  xlim(-5, 35)) #used to zoom into actual MMSE range
+suppressWarnings(pp_check(CogRegression, resp = "CERADimm", nsamples = 25) +
+  xlim(-5, 35))
+suppressWarnings(pp_check(CogRegression, resp = "CERADdel", nsamples = 25) +
+  xlim(-5, 15))
+suppressWarnings(pp_check(CogRegression, resp = "CERADdisc", nsamples = 25) +
+  xlim(-15, 15))
+suppressWarnings(pp_check(CogRegression, resp = "LMIM", nsamples = 25) +
+  xlim(-5, 28))
+suppressWarnings(pp_check(CogRegression, resp = "LMDM", nsamples = 25) +
+  xlim(-5, 30))
+suppressWarnings(pp_check(CogRegression, resp = "LMrcg", nsamples = 25) +
+  xlim(-5, 20))
+suppressWarnings(pp_check(CogRegression, resp = "CPIM", nsamples = 25) +
+  xlim(-5, 16))
+suppressWarnings(pp_check(CogRegression, resp = "CPDM", nsamples = 25) +
+  xlim(-5, 26))
+suppressWarnings(pp_check(CogRegression, resp = "Animals", nsamples = 25) +
+  xlim(-5, 50))
+suppressWarnings(pp_check(CogRegression, resp = "SDMT", nsamples = 25) +
+  xlim(-5, 75))
+suppressWarnings(pp_check(CogRegression, resp = "TMTA", nsamples = 25) +
+  xlim(-5, 305))
+suppressWarnings(pp_check(CogRegression, resp = "TMTB", nsamples = 25) +
+  xlim(-5, 305))
+```
+
+As would be expected, the model predicts some outcomes better than others. This said, the model does a generally good job of capturing the rough shape of most of the outcomes and approximates the central tendency of each test fairly well. The central tendency is the more valuable aspect of this regression as the ultimate goal is to identify individuals who are below average rather than assigning or estimating some quantile at which a performance falls. The model fit could likely be improved in a few ways. First, some models clearly have a mixture of distributions. These mixtures might be as simple as two classes: a "can do the task" group and a "can't do the task" group. These might be the case for Trails B and CERAD Delayed Recall. This being said, mixture models in `brms` are challenging to run, and finding the correct number of mixtures to evaluate is non-trivial. Second, the models could benefit from being respecified from a Student *t* likelihood. While better than a standard normal distribution for these data, the Student *t* distribution still makes assumptions that are not appropriate for the bounded count data that clearly dominates the majority of these outcomes. Some likelihoods that may be more useful would be the binomial, skew normal, and potentially the log-normal. Alternative likelihoods were not explored because `brms` currently only supports estimations of the residual correlations when the data are fit on a multivariate normal or Student *t* likelihood. Third, a distributional model that estimates a separate sigma (residual variance) for each outcome may lead to even better/individualized prediction. Again, the current results are sufficient for the purposes needed, but it is important that readers recognize that these methods should not be used to base inferences as this was not then intent of the methods.
+
+As has been highlighted in this document, one of the benefits of the multivariate multiple regression is the ability to estimate the correlation among residuals. This multivariate nature is important for analyzing cognitive test performance in a battery rather than based on a single test. Having that information about the correlation among residuals helps improve accuracy given the desired aim to base cognitive diagnosis classification based on residuals from the model's predictions. Toward this end, the correlation matrix for the residuals is shown here:
+
+```{r ResidCors}
+matrix(VarCorr(CogRegression)$residual__$cor[, 1, ],
+       nrow = 13, ncol = 13, byrow = FALSE, dimnames = list(c("MMSE", "Animals", "CERAD Delayed", "Logical Memory Immediate", "Constructional Praxis Immediate", "Symbol Digits Modality", "Constructional Praxis Delayed", "Logical Memory Delayed", "Logical Memory Recognition", "Trails A", "Trails B", "CERAD Immediate", "CERAD Discriminability"), c("MMSE", "Animals", "CERAD Delayed", "Logical Memory Immediate", "Constructional Praxis Immediate", "Symbol Digits Modality", "Constructional Praxis Delayed", "Logical Memory Delayed", "Logical Memory Recognition", "Trails A", "Trails B", "CERAD Immediate", "CERAD Discriminability"))) %>%
+  kable(caption = "Residual Correlations from the Multivariate Regression", align = 'c', digits = 2) %>%
+  kable_classic(full_width = FALSE, position = "center")
+```
+
+The final details to provide regarding the regression model is a gross summary of its performance. The following table summarizes the Bayesian $R^2$ statistic for each outcome estimated.
+
+```{r ModPerf}
+matrix(posterior_summary(CogRegression$criteria$bayes_R2, probs = c(0.025, 0.05, 0.90, 0.975)),
+       nrow = 13, ncol = 6, byrow = FALSE,
+       dimnames = list(c("MMSE", "Animals", "CERAD Delayed", "Logical Memory Immediate", "Constructional Praxis Immediate", "Symbol Digits Modality", "Constructional Praxis Delayed", "Logical Memory Delayed", "Logical Memory Recognition", "Trails A", "Trails B", "CERAD Immediate", "CERAD Discriminability"), c("Estimate", "Std. Error", "95% CI LB", "90% CI LB", "90% CI UB", "95% CI UB"))) %>%
+  kable(caption = "Model Performance from the Multivariate Regression", align = 'c', digits = c(2, 2, 4, 4, 4, 4)) %>%
+  kable_classic(full_width = FALSE, position = "center")
+```
+
+As is relatively apparent from the table, the predictors do not explain large proportions of variance in expected scores. This is particularly true for the Trail Making Test. On the one hand, this is good and makes sense. We do not expect cognitive test performance to be entirely due (or even primarily due) to demographic and background factors. On the other hand, this is not ideal for producing highly accurate predictions of performance. Regardless, the residual distributions are ultimately the point of interest here as this is used as the metric for inferring cognitive impairment on a given test.
+
+# Latent Class Analysis Results
+
+The latent class analysis was the ultimate end goal of the entire process. In the absence of any clinically defined diagnostic status, there needed to be a method for detecting these unobserved groups of individuals. There are two primary methods for doing this: latent profile analysis and latent class analysis. Both are identical in their basic purpose: utilize assumed parametric statistical properties to class individuals into an arbitrary number of homogeneous classes. The distinction between the two methods is that latent profile analysis takes as input continuous variables (e.g., raw scores) while latent class analysis takes dichotomous variables as input. A special note is made here that we are deliberately excluding methods like cluster analyses as these impose no statistical assumptions and are instead grouping observed data based on differences within the data. There is no statistical framework there to make inferences as to whether the clusters extend to other samples or settings. While clustering methods are ideal for many large data and machine learning settings where the available data either represent the true population or are so large that sampling error is negligible, a deliberate effort to rely on inferential methods was made for this particular application as the HRS very carefully samples a population of interest.
+
+Latent class analysis was selected over latent profile analysis because the interest was on clinically-defined diagnostic groups. Arguably, using latent profile analysis could be considered easier since it would not have required the development of a separate regression equation to predict performance. With latent profile analysis, there may be many different latent classes identified but there is no guarantee that these classes correspond to individuals with cognitive impairment; instead, latent profiles may correspond to groups of individuals with relative strengths in certain areas. Relying only on dichotomous indicators of impaired vs not impaired ensures that the model is only making decisions about that aspect of the testing performance. Additionally, recent work by Jak, Bondi and colleagues has emphasized the utility of a simple >1SD below expectations dichotomizing criterion of cognitive data for detecting mild cognitive impairment (MCI). Detection of individuals with likely dementia is not necessarily difficult given the battery of tests administered; however, discriminating between MCI and normal cognition is trickier, so a method built on existing literature to detect MCI was preferred as well.
+
+The primary challenge of any latent class analysis is the number of latent classes to model. The `BayesLCA` package provides a convenient method for deriving the number of latent classes via a variational Bayes estimator. Specifically, the Dirichlet prior for class membership/mixture can be set to some value less than 1 and then the number of classes to be fit can be set to some value larger than what is expected (i.e., the model can be overfit). The result is that any unused classes are returned as empty and only those number of classes needed to describe the data are filled. In this case, the Dirichlet mixing prior was specified as 1/10 and 10 latent classes were fit. The resulting method resulted in 8 uniquely estimated latent classes. Based on these 8 different classes, class 1 was used as the "cognitively normal" group as this was the most clearly non-impaired group identified. To help understand this decision-making process, we can look at the probability of group membership as a function of each test being scored as either a 0 (not impaired relative to expected performance) or 1 (impaired relative to expected performance).
+
+```{r GroupProbabilities}
+matrix(LCAres$itemprob[1:8, ], nrow = 8, ncol = 13, byrow = FALSE,
+       dimnames = list(paste("Class", 1:8), c("MMSE", "Animals", "CERAD Delayed", "Logical Memory Immediate", "Constructional Praxis Immediate", "Symbol Digits Modality", "Constructional Praxis Delayed", "Logical Memory Delayed", "Logical Memory Recognition", "Trails A", "Trails B", "CERAD Immediate", "CERAD Discriminability"))) %>%
+  kable(caption = "Probabilities of Class Membership by Dichotomous Test Performance", align = 'c', digits = 2) %>%
+  kable_classic(full_width = FALSE, position = "center")
+```
+
+As can be seen from these probabilities, Class 1 is the only one in which there is a small probability of being included in if there is any test performance that is below expected. The most clear contrast from above is that of Class 8 where probability of membership increases dramatically for each (though most strongly among the memory tests) abnormal test result. All of the other classes demonstrate an increase in probability of membership with each successive abnormal test result. In the case of Class 2, it seems that abnormal CERAD performance defines its membership. In Class 3, it is abnormal Logical Memory performance that describes its members. Classes 4 and 5 are both more likely in cases where MMSE is abnormal, but Class 5 also seems to have more gross impairment across all memory tests. Class 6 id defined by an amnestic profile but intact general cognition (i.e., MMSE). Class 7 seems to be more visuospatial in nature as the Constructional Praxis test defines its membership. Based on inspection of these results, it was determined to consider any case grouped into Class 1 as being cognitively normal and all other individuals as being impaired. As a final note of clarification, cognitive normal assignment did not trump informant report in regards to being included or not. In other words, individuals who were found to be cognitively normal using the methods described throughout this document but whose informant reported any impairment were still classified as impaired and thus excluded from the study.
