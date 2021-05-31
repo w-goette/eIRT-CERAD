@@ -10,5 +10,6 @@ This repository serves as a central place to keep R scripts and supplementary ma
 |Pre-print|TBD|
 |Supplementary Material|TBD|
 |R code|[Here](https://github.com/w-goette/eIRT-CERAD/tree/main/ItemCovStudy)|
+|HTML Markdown Supplements|TBD|
 |Open Science Framework Page|[Here](https://osf.io/bd8s9/)|
 |Final Publication|TBD|
