@@ -7,7 +7,7 @@ This repository serves as a central place to keep R scripts and supplementary ma
 |---|---|
 |Primary Data Source|[Here](https://hrsdata.isr.umich.edu/data-products/2016-harmonized-cognitive-assessment-protocol-hcap?_ga=2.27455356.1307685611.1614482368-1012243465.1597251037)|
 |Pre-registration|[Here](https://osf.io/pyd63)|
-|Pre-print|[Here](https://psyarxiv.com/y5urf/)|
+|Pre-print|TBD|
 |Supplementary Material|[Here](https://github.com/w-goette/eIRT-CERAD/tree/main/ItemCovStudy/Markdown%20Documents)|
 |R code|[Here](https://github.com/w-goette/eIRT-CERAD/tree/main/ItemCovStudy/R%20Script%20Files)|
 |Open Science Framework Page|[Here](https://osf.io/bd8s9/)|
