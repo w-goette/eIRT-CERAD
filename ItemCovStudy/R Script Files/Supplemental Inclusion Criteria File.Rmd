@@ -1,9 +1,7 @@
 ---
-title: "Supplemental Inclusion Criteria File"
-date: "5/28/2021"
+title: "Imputation and Inclusion Criteria File"
 output: 
-  rmdformats::downcute:
-    code_folding: hide
+  rmdformats::robobook:
     self_contained: true
     thumbnails: false
     lightbox: true
