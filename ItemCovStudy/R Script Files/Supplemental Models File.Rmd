@@ -1,9 +1,7 @@
 ---
 title: "Modeling and Results Supplement"
-date: "5/27/2021"
 output: 
-  rmdformats::downcute:
-    code_folding: hide
+  rmdformats::robobook:
     self_contained: true
     thumbnails: false
     lightbox: true
@@ -15,11 +13,9 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # Purpose of the Document
 
-The aim of these supplementary details are to provide readers with better documentation of the complete modeling and model selection process. There were a total of 18 models fit as part of this study, and the number of analyses and supporting figures to understand this process are simply too long for a single document. This document therefore provides relevant plots and summaries to help readers understand the steps taken to arrive at the final model, and perhaps more importantly, the document provides commentary for how each modeling choice was made.
+The aim of these supplementary details are to provide readers with better documentation of the complete modeling and model selection process. There were a total of 11 models fit as part of this study, and the number of analyses and supporting figures to understand this process are simply too long for a single document. This document therefore provides relevant plots and summaries to help readers understand the steps taken to arrive at the final model, and perhaps more importantly, the document provides commentary for how each modeling choice was made.
 
 The goal of this document is therefore to ensure complete transparency in the data analysis process. Accompanying this document is also the R script file that was created during the study process. Someone who acquires access to the appropriate files through the HRS should be able to run the script file (with some minimal alterations to ensure that the files are read from the correct files) and then get results that match those shown here (within some margin of error due to randomness in some of the methods, though the use of the same seed in R and `brms` should reduce the impact of this).
-
-Note that by default all the code used to generate the results in this document is not shown. As some readers may be interested in this code, it is possible to turn on its display by toggling the switch in the top right of this page. Every output from the document also has a toggle button (a small button with the word "code") that, when pressed, will show the code used to produce the output. Additionally, the raw Markdown file (*.rmd) is available on the github with the R script.
 
 ## Overview of Sections
 
@@ -27,17 +23,15 @@ In an attempt to facilitate readability of this document, the modeling process i
 
 First, a flowchart showing the order in which models were built and the model to which each was tested is provided. Each candidate model was compared to the up-to-then best fitting model. The aim of this flowchart is to help familiarize readers with the models and modeling steps quickly and efficiently as the remaining sections add greater detail.
 
-Second, the priors used in the models are explored. As the data analyses were done in the Bayesian framework, the analysis of the priors is useful. The priors are shown as well as the prior predictive checks for an intercept-only model.
+Second, the priors used in the models are explored. As the data analyses were done in the Bayesian framework, the analysis of the priors is useful. The priors are shown as well as the prior predictive checks for a fixed item model.
 
 Third, the details of each model are provided. This is the largest section as each model includes a variety of explorations. To help reduce the overall length of the document, each model is given its own tab so that readers can select one model at a time. Details for each model can be broken down into 3 primary sections: model validity, model performance, and model estimates. 
 
 *   Model validity refers to tests of whether the estimation process converged and not subject to any issues that would make estimates from the model entirely invalid or unstable. These tests include visual inspection of chain mixtures, $\hat{R}$, effective sample size, and maximum treedepth. 
-*   Model performance refers to the posterior predictive checks that mirror those shown in the manuscript for the final model: predictions of all responses for all items, responses to each item, and responses to all items for a subset of participants. As the space of this document is less limited than space in the final manuscript, the random subset of participants is increased from 6 to 20.
+*   Model performance refers to the posterior predictive checks that mirror those shown in the manuscript for the final model: predictions of all responses for all items, responses to each item, and responses to all items for a subset of participants. As the space of this document is less limited than space in the final manuscript, the random subset of participants is increased from 12 to 20.
 *   Model estimates refers to the summary of model parameters like fixed and random effects estimates. This summary is different than the one presented in the manuscript for the final paper as the objective of these intermediary models is not to summarize effect sizes or the probability of these effects; instead, the goal is to get a general idea of what the model is estimating and how it is performing. Toward this end, conditional effects plots for each model are also included. Note that these plots may not be very informative for the majority of the models tested because only a subset included many covariates.
 
-Fourth, the results of the model comparisons are provided. These are the formal comparisons of the leave-one-out information criterion (LOOIC) and pseudo-Bayesian model averaging (pseudo-BMA) tests. Not all models were compared to one another, so it can be helpful to return to the flowchart to see the model comparisons that were made.
-
-Finally, as discussed in the manuscript, some additional details regarding the final model are also included here. These details include summaries of the item parameters in traditional IRT metrics (i.e., as difficulty and discrimination), the reliability plot, expected score functions (total test and first trial), and test information functions (total test and first trial). The same caveat as in the manuscript is made here: the item parameters are estimated assuming the local dependency effect is 0 for every item on all three trials. This is not a realistic assumption, but these effects are unique for every response pattern, making summarizing the various effects overwhelming. The test is best understood as a dynamic one in which a person's performance on each trial changes our expectation for how they will perform on the next; however, a gross simplification that captures the general expectation of how items will perform can be obtained by ignoring this dynamic element (as done here).
+Finally, as discussed in the manuscript, some additional details regarding the final model are also included here. These details include summaries of the item parameters in traditional IRT metrics (i.e., as difficulty and discrimination), the reliability plot, expected score functions (total test), and information functions (total test and all trials). As in the manuscript, these item-specific plots are provided with and without assuming previous learning of the words. The test is best understood as a dynamic one in which a person's performance on each trial changes our expectation for how they will perform on the next.
 
 ## What's Being Done
 
@@ -50,22 +44,13 @@ Rasch_prior <- readRDS("Fitted Models/1PL_prior_check.rds")
 TwoPL_prior <- readRDS("Fitted Models/2PL_prior_check.rds")
 Rasch_inter <- readRDS("Fitted Models/1PL_intercept.rds")
 TwoPL_inter <- readRDS("Fitted Models/2PL_intercept.rds")
-TwoPL_ranItemTrialsInt <- readRDS("Fitted Models/2PL_random_items_allThree_int.rds")
-TwoPL_ranItemTrialsNoInt <- readRDS("Fitted Models/2PL_random_items_allThree_noInt.rds")
-TwoPL_ranItemTrial1Int <- readRDS("Fitted Models/2PL_random_items_trialOne_int.rds")
-TwoPL_ranItemTrial1NoInt <- readRDS("Fitted Models/2PL_random_items_trialOne_noInt.rds")
-TwoPL_depmd <- readRDS("Fitted Models/2PL_dependency_model.rds")
-TwoPL_depea <- readRDS("Fitted Models/2PL_dependency_easinessOnly.rds")
-TwoPL_depsi <- readRDS("Fitted Models/2PL_dependency_trialOne.rds")
-TwoPL_learn <- readRDS("Fitted Models/2PL_learningModel.rds")
+TwoPL_learn <- readRDS("Fitted Models/2PL_growthModel.rds")
 TwoPL_multi <- readRDS("Fitted Models/2PL_multidimensional.rds")
-TwoPL_srlps <- readRDS("Fitted Models/2PL_serialPosition.rds")
-TwoPL_t3spe <- readRDS("Fitted Models/2PL_serialPosition_trialUnique.rds")
+TwoPL_chnge <- readRDS("Fitted Models/2PL_changeModel.rds")
+TwoPL_depmd <- readRDS("Fitted Models/2PL_dependencyModel.rds")
+TwoPL_depun <- readRDS("Fitted Models/2PL_dependencyUniqueModel.rds")
+TwoPL_deptr <- readRDS("Fitted Models/2PL_dependencyTrialModel.rds")
 TwoPL_itmex <- readRDS("Fitted Models/2PL_itemCovariates.rds")
-TwoPL_itmcp <- readRDS("Fitted Models/2PL_itemCovariates_byTrial.rds")
-TwoPL_itmcr <- readRDS("Fitted Models/2PL_itemCovariates_uniqueInteractions.rds")
-TwoPL_itmsd <- readRDS("Fitted Models/2PL_itemCovariates_simplified.rds")
-TwoPL_itmfn <- readRDS("Fitted Models/2PL_itemCovariates_reduced.rds")
 
 #load in required packages 
 #wrapping in suppressPackageStartupMessages() done just to reduce print out in document
@@ -77,76 +62,71 @@ suppressPackageStartupMessages(library(kableExtra))
 
 # Modeling Flowchart
 
-As can be inferred from the figure below, the modeling process involved many iterations of fitting similar models and considering results from old models. As there specific hypotheses regarding the model and its covariates, the models needed to test these hypotheses were naturally created as part of the study. At the same time, alternative models had to be specified against which to test these models. Additionally, while there were hypotheses regarding what covariates (and their signs) would ultimately be in the final model, the important result of the study is the final model itself. Some readers may see the number of models examined and variations in their specification and become concerned of potentially two things: multiple comparisons + inflated error rates and/or model fishing/*p*-hacking.
+As can be inferred from the figure below, the modeling process involved several iterations of fitting similar models and considering results from old models. As there specific hypotheses regarding the model and its covariates, the models needed to test these hypotheses were naturally created as part of the study. At the same time, alternative models had to be specified against which to test these models. Additionally, while there were hypotheses regarding what covariates (and their signs) would ultimately be in the final model, the important result of the study is the final model itself. Some readers may see the number of models examined and variations in their specification and become concerned of potentially two things: multiple comparisons + inflated error rates and/or model fishing/*p*-hacking.
 
-The objective of this supporting document is to help clarify all the modeling choices so that readers do not need to question whether model specifications were made to try to improve performance of the final result. With respect to possible concerns regarding multiple comparisons, Bayesian methods do no suffer from these concerns (Gelman et al., 2013; [Gelman, Hill,& Yajima, 2012](http://www.stat.columbia.edu/~gelman/research/published/multiple2f.pdf); [Neath, Flores, & Cavanaugh, 2017](https://onlinelibrary.wiley.com/doi/abs/10.1002/wics.1420); [Sj&ouml;lander & Vansteelandt, 2019](https://link.springer.com/article/10.1007/s10654-019-00517-2)). While there are several reasons that this is the case for Bayesian methods, it is sufficient to speak to three. First, we do not use null hypothesis testing in this study. Model comparisons are completed using a formal comparison of information criteria to select models with better out-of-sample performance. Coefficients are not interpreted as significant or not but instead are summarized in terms of their probability of existing. Since the correction to *p*-values for multiple comparisons is to control the risk of falsely rejecting the null hypothesis, this is not a concern when we are not rejecting null hypotheses. Second, we utilize skeptical priors for our effects estimates. This means that we are *a priori* placing greater probability of the effects being 0 (or practically equivalent to 0). This is the inverse of frequentist decision-making practices where the null hypothesis is very easy to reject since it is constrained to (usually) a nill point value, which is rarely a realistic threshold for any model specification. Finally, the models benefit from hierarchical partial pooling of effects, meaning that estimates are pulled away from extreme values and closer to the overall mean. Combined with the skeptical priors, this means that all effects estimates are pulled closer to those *a priori* small effects.
-
-For anyone concerned of model fitting to simply improve performance, the remainder of this document aims to explain each modeling decision. While some of the model specifications are discussed in detail in the manuscript, specific justifications and rationales for adding or dropping covariates could not be explained there, so this document takes that next step. While every modeling decision was based on trying to find the best performing model, the study still utilized *a priori* hypotheses about each predictor, and each predictor was tested in order to test these hypotheses. Once these hypotheses are tested, however, it is still important to have a final model that summarizes these findings (i.e., that include only the most relevant predictors).
+The objective of this supporting document is to help clarify all the modeling choices so that readers do not need to question whether model specifications were made to try to improve performance of the final result. With respect to possible concerns regarding multiple comparisons, Bayesian methods do no suffer from these concerns (Gelman et al., 2013; [Gelman, Hill,& Yajima, 2012](http://www.stat.columbia.edu/~gelman/research/published/multiple2f.pdf); [Neath, Flores, & Cavanaugh, 2017](https://onlinelibrary.wiley.com/doi/abs/10.1002/wics.1420); [Sj&ouml;lander & Vansteelandt, 2019](https://link.springer.com/article/10.1007/s10654-019-00517-2)). While there are several reasons that this is the case for Bayesian methods, it is sufficient to speak to three. First, we do not use null hypothesis testing in this study. Model comparisons are completed using a formal comparison of information criteria to select models with better out-of-sample performance. Coefficients are not interpreted as significant or not but instead are summarized in terms of their probability of existing. Since the correction to *p*-values for multiple comparisons is to control the risk of falsely rejecting the null hypothesis, this is not a concern when we are not rejecting null hypotheses. Second, we utilize skeptical priors for our effects estimates. This means that we are *a priori* placing greater probability of the effects being 0 (or practically equivalent to 0). This is the inverse of frequentist decision-making practices where the null hypothesis is very easy to reject since it is constrained to (usually) a nill point value, which is rarely a realistic threshold for any model specification. Finally, the models include skeptical priors, meaning that all effects estimates are pulled closer to those *a priori* small effects.
 
 ```{r Flowchart, echo = FALSE, fig.cap = "Flowchart of all models fit and compared in order (click to make larger)"}
-knitr::include_graphics("C:\\Users/billy/Desktop/Psych Articles/HCAP/CERAD IRT Update/Figures/ItemCovariate_Flowchart.jpg")
+knitr::include_graphics("C:\\Users/billy/Desktop/Psych Articles/HCAP/CERAD IRT Update/Figures/ItemCovariateModels_Flowchart.bmp")
 ```
 
 # Prior Specifications and Inspection
 
-As discussed in the manuscript for this study, prior specification came from documentation on using `brms` for IRT (i.e., [B&uuml;rkner, 2020a](https://arxiv.org/abs/1905.09501) and [B&uuml;rkner, 2020b](https://www.mdpi.com/2079-3200/8/1/5/htm)). As a general note, the non-linear specification for the 2PL model used in this study come from the B$uuml;rkner (2020b) study published in the *Journal of Intelligence*. Also as discussed in the manuscript, the specification of priors follows the recommendations of other typical multilevel regression guides (e.g., Gelman & Hill, 2007). Specifically, the priors are normal distributions with wide variances relative to the scale of the outcome data. As these priors on the regression coefficients, normal distributions are appropriate prior distributions. While these distributions are centered on 0, they are made wide and thus only weakly informative to the final parameter estimates. This specification helps regularize estimation (i.e., pull estimates toward zero and away from more extreme values) while imparting little *a priori* influence on the estimates. Additionally, by making the priors skeptical (i.e., they place the greatest probability on very small to non-existent effects), there is a reduction in the risk of experimenter bias; however, with 1050 participants each observed 30 times, the data will dominate the prior anyway.
+As discussed in the manuscript for this study, prior specification came from documentation on using `brms` for IRT (i.e., [B&uuml;rkner, 2020a](https://arxiv.org/abs/1905.09501) and [B&uuml;rkner, 2020b](https://www.mdpi.com/2079-3200/8/1/5/htm)). As a general note, the non-linear specification for the 2PL model used in this study come from the B$uuml;rkner (2020b) study published in the *Journal of Intelligence*. Also as discussed in the manuscript, the specification of priors follows the recommendations of other typical multilevel regression guides (e.g., Gelman & Hill, 2007). Specifically, the priors are normal distributions with wide variances relative to the scale of the outcome data. As these priors on the regression coefficients, normal distributions are appropriate prior distributions. While these distributions are centered on 0, they are made wide and thus only weakly informative to the final parameter estimates. This specification helps regularize estimation (i.e., pull estimates toward zero and away from more extreme values) while imparting little *a priori* influence on the estimates. Additionally, by making the priors skeptical (i.e., they place the greatest probability on very small to non-existent effects), there is a reduction in the risk of experimenter bias; however, with 1219 participants each observed 30 times, the data will dominate the prior anyway.
 
 The priors for the Rasch and 2PL models are shown below:
 ```{r PriorSpecifications, eval = FALSE}
 Rasch_priors <-
-  prior("normal(0, 2)", class = "Intercept") +
-  prior("normal(0, 3)", class = "sd", group = "ID") + 
-  prior("normal(0, 3)", class = "sd", group = "Item")
+  prior("normal(0, 5)", class = "b") +
+  prior("normal(0, 3)", class = "sd", group = "ID")
 
 TwoPL_priors <- 
-  prior("normal(0, 2)", class = "b", nlpar = "beta") +
+  prior("normal(0, 5)", class = "b", nlpar = "beta") +
   prior("normal(0, 1)", class = "b", nlpar = "logalpha") +
-  prior("normal(0, 1)", class = "sd", group = "ID", nlpar = "theta") + 
-  prior("normal(0, 3)", class = "sd", group = "Item", nlpar = "beta") +
-  prior("normal(0, 1)", class = "sd", group = "Item", nlpar = "logalpha")
+  prior("normal(0, 1)", class = "sd", group = "ID", nlpar = "theta")
 ```
 
-Readers following the R script file will recognize that the above are repeated in that document (lines 310-321). To read these priors, it can be helpful to look at a couple of examples. Starting with the priors for the Rasch model, the prior for the intercept is specified as a normal distribution with a mean of zero and standard deviation of 2. This would mean that, before looking at the data, we are guessing that there is a 68% probability of the intercept being between -2 and 2 (i.e., +/- 1SD), and we are guessing that there is about a 95% probability that the intercept will be between -4 and 4 (i.e., +/- 2SD). Since the model uses a logit transformation, these values correspond to odds ratios of $e^{\beta_0}$ where $\beta_0$ is the intercept. Clearly, this range is very large (e.g., ~0.02 - 54.60 at 2SD), which is what makes the prior specification weakly informative. Take another example but this time from the 2PL model and a random effect. The random effect priors are all labeled as `class = "sd"` since we are putting a prior belief on the plausible values of the standard deviation of the random effects. For the random person effect (i.e., latent trait of each participant), we look for the variable that defines this group (`group = "ID"`, where ID is a number indexing each participant) and the non-linear element it is estimating (`nlpar = "theta"` where theta is the traditional IRT simple for the latent trait). The prior therefore for the latent trait is the standard normal distribution with mean of zero and standard deviation of 1. This specification is consistent with the treatment of the latent trait in IRT as normally distributed, though generally in IRT models the variance is constrained to be 1 for identifiability purposes (see B&uuml;rnker, 2020a for details).
+Readers following the R script file will recognize that the above are repeated in that document ("3 - Measurement and Explanatory Model Fit", lines 19-27). To read these priors, it can be helpful to look at a couple of examples. Starting with the priors for the Rasch model, the prior for the coefficients (`class = "b"`) is specified as a normal distribution with a mean of zero and standard deviation of five. This would mean that, before looking at the data, we are guessing that there is a 68% probability of the intercept being between -5 and 5 (i.e., +/- 1SD), and we are guessing that there is about a 95% probability that the coefficients will be between -10 and 10 (i.e., +/- 2SD). In these models, the coefficient corresponds to the actual item parameters (for the Rasch, this is item easiness), so these are the ranges in which we are saying are potential values we might observe. Take another example but this time from the 2PL model and a random effect. The random effect priors are all labeled as `class = "sd"` since we are putting a prior belief on the plausible values of the standard deviation of the random effects. For the random person effect (i.e., latent trait of each participant), we look for the variable that defines this group (`group = "ID"`, where ID is a number indexing each participant) and the non-linear element it is estimating (`nlpar = "theta"` where $\theta$ is the traditional IRT simple for the latent trait). The prior therefore for the latent trait is the standard normal distribution with mean of zero and standard deviation of 1. This specification is consistent with the treatment of the latent trait in IRT as normally distributed and z-scaled, though generally in IRT models the variance is constrained to be 1 for identifiability purposes (see B&uuml;rnker, 2020a for details).
 
-While it's comforting to be able to go through each prior specification and think about what it means, it is perhaps more efficient to examine some plots. The first set of plots shown are the parameter estimates returned when the model samples only from the prior. In other words, these are the estimated effects implied by the priors. If the prior specifications are truly skeptical and weakly informative, then they will give the greatest probability to effects of very small size and cover a wide range of plausible values. These effects estimates for an intercept only Rasch are shown below. 
+While it's comforting to be able to go through each prior specification and think about what it means, it is perhaps more efficient to examine some plots. The first set of plots shown are the parameter estimates returned when the model samples only from the prior. In other words, these are the estimated effects implied by the priors. If the prior specifications are truly skeptical and weakly informative, then they will give the greatest probability to effects of very small size and cover a wide range of plausible values. The prior distribution for the Rasch easiness parameter of "Butter" on trial one. 
 
 ```{r RaschPriorEstimates}
-plot(Rasch_prior, combo = c("dens", "intervals"))
+plot(Rasch_prior, combo = c("dens", "intervals"), variable = "b_ItemButter1", ask = FALSE)
 ```
 
-Consistent with expectations, these plots show wide ranges of plausible values with the greatest probabilities being placed on small effects. In the left column are the density plots of the estimates while the right column shows the interval estimates with the circle = mean estimate, bold line = 50% credible interval, and thin line = 90% credible interval. The intercept density very clearly follows a normal distribution that allows admissible values with more extreme estimates being given small overall probability of being true. The standard deviations for the random effects are also appropriate for the data as they are not giving any impossible (i.e., negative) estimates and cover a very wide range of possible values. These wide priors allow the data to dominate the posterior estimates for the parameters, though again this would likely be the case with even more informative priors due to the size of the sample available.
+Consistent with expectations, these plots show wide ranges of plausible values with the greatest probabilities being placed on small effects. In the left column are the density plots of the estimates while the right column shows the interval estimates with the circle = mean estimate, bold line = 50% credible interval, and thin line = 90% credible interval. The prior density very clearly follows a normal distribution that allows admissible values with more extreme estimates being given small overall probability of being true. These wide priors allow the data to dominate the posterior estimates for the parameters, though again this would likely be the case with even more informative priors due to the size of the sample available.
 
 ```{r 2PLPriorEstimates}
-plot(TwoPL_prior, N = 3, combo = c("dens", "intervals"), ask = FALSE)
+plot(TwoPL_prior, combo = c("dens", "intervals"), variable = "b_beta_ItemButter1", ask = FALSE)
 ```
 
-The plots above mirror those for the Rasch model but are for the 2PL model, which necessarily estimates more parameters. Again, the intercept priors make reasonable sense and the standard deviations are all giving only appropriate estimates. Note that there is also a prior over the correlation between item easiness ("beta") and discrimination ("logalpha"). This prior is not specified in the earlier code as the default in `brms` is the LKJ prior with $\eta$ = 1, which is the preferred weakly informative prior for a correlation matrix. As is apparent from the above figure, the LKJ prior is close to a uniform distribution that is bounded by -1 and 1; however, unlikely a true uniform distribution, the LKJ prior gives less probability to correlations close to perfect. Thus, it is fairly ideal as a prior for correlations as it is bound appropriate (i.e., between -1 and 1) and provides little *a priori* belief/information about the correlations except to say that correlations close to perfect are unlikely, which is almost always a sensible assumption for any data.
+The plot above mirrors what was shown for the Rasch model but are for the 2PL model, which is clearly not different as the same priors are used for this parameter. Though all the prior distributions for the model can be shown, this results in many different plots that can be overwhelming to interpret, and these plots correspond to just priors for those specific parameters. Since researchers may not often have explicit expectations for what each parameter will be or should be, these plots are not always directly helpful.
 
-Another related graphical output is the prior predictive check. The prior predictive check runs the model using the priors rather than the observed data (note that this model would be similar to a null model). If the priors are specified well, then they should return reasonable, albeit widely varying, estimates of the observed data. The prior predictive checks for the Rasch and 2PL models are shown below following the same layout as the posterior predictive checks in the manuscript and for the other models.
+Another related graphical output is the prior predictive check. The prior predictive check runs the model using the priors rather than the observed data (note that this model would be similar to a null model). If the priors are specified well, then they should return reasonable, albeit wide, estimates of the observed data. This plot is more intuitive for understanding the effect of priors instead of parameter-by-parameter plots like above. The prior predictive checks for the Rasch and 2PL models are shown below following the same layout as the posterior predictive checks in the manuscript and for the other models.
 
 ```{r RaschPriorPredictiveCheck}
-pp_check(Rasch_prior, nsamples = 25, type = "bars")
-pp_check(Rasch_prior, nsamples = 25, type = "bars_grouped", group = "Item")
-pp_check(Rasch_prior, nsamples = 25, type = "bars_grouped", group = "ID", 
+pp_check(Rasch_prior, ndraws = 25, type = "bars")
+pp_check(Rasch_prior, ndraws = 25, type = "bars_grouped", group = "Item")
+pp_check(Rasch_prior, ndraws = 25, type = "bars_grouped", group = "ID", 
          newdata = subset(df_long, df_long$ID %in% as.factor(sample.int(n = 1219, size = 20, replace = FALSE))))
 ```
 
-The Rasch prior predictive checks above demonstrate that the prior specifications are adequately wide to provide coverage for the observed data. The estimates themselves are expectedly poor, but the important part is that the ranges of these estimates are sufficiently wide to allow the observed data to fall within the credible intervals. The same plots are now repeated but for the 2PL model.
+The Rasch prior predictive checks above demonstrate that the prior specifications are adequately wide to provide coverage for the observed data. The estimates themselves are expectedly poor, which is a product of the skeptical priors. The same plots are now repeated but for the 2PL model.
 
 ```{r 2PLPriorPredictiveChecks}
-pp_check(TwoPL_prior, nsamples = 25, type = "bars")
-pp_check(TwoPL_prior, nsamples = 25, type = "bars_grouped", group = "Item")
-pp_check(TwoPL_prior, nsamples = 25, type = "bars_grouped", group = "ID", 
+pp_check(TwoPL_prior, ndraws = 25, type = "bars")
+pp_check(TwoPL_prior, ndraws = 25, type = "bars_grouped", group = "Item")
+pp_check(TwoPL_prior, ndraws = 25, type = "bars_grouped", group = "ID", 
          newdata = subset(df_long, df_long$ID %in% as.factor(sample.int(n = 1219, size = 20, replace = FALSE))))
 ```
 
 Performance of the 2PL priors are similar to those of the Rasch, suggesting that these priors are also appropriately specified.
 
-While all the above plots and theoretical justifications suggest that the priors are specified consistent with the wishes for the model, it can also be helpful to perform a post-hoc test of whether a model's priors were influential on its final estimates. As has been mentioned multiple times in this section, due to the sample size of this study, it is expected that the data and not the prior will dominate the posterior estimates, meaning that even with more informative priors the data would have more influence on the final estimates. One such comparison discussed by Andrew Gelman (link [here](https://statmodeling.stat.columbia.edu/2019/08/10/for-each-parameter-or-other-qoi-compare-the-posterior-sd-to-the-prior-sd-if-the-posterior-sd-for-any-parameter-or-qoi-is-more-than-0-1-times-the-prior-sd-then-print-out-a-note-the-prior-dist/)) is to compare the posterior standard deviation (i.e., precision of the effect estimate after looking at the data) to the prior standard deviation (i.e., uncertainty of the effect estimate before looking at the data). In the case that a prior is influential, the ratio of the precision to uncertainty will be large. Put another way, we learn little more about the posterior from observing the data because the prior was already highly informative. Gelman's recommended threshold for determining whether a prior is informative is if the posterior standard deviation for an effect is more than 0.1 times the prior standard deviation. The able below provides this metric for each predictor from the final model reported in the study. As a note, these are the only parameters examined for sensitivity to the prior as these are the only ones on which inference was conducted.
+While all the above plots and theoretical justifications suggest that the priors are specified consistent with the wishes for the model, it can also be helpful to perform a post-hoc test of whether a model's priors were influential on its final estimates. As has been mentioned multiple times in this section, due to the sample size of this study, it is expected that the data and not the prior will dominate the posterior estimates, meaning that even with more informative priors the data would have more influence on the final estimates. One such comparison discussed by Andrew Gelman (link [here](https://statmodeling.stat.columbia.edu/2019/08/10/for-each-parameter-or-other-qoi-compare-the-posterior-sd-to-the-prior-sd-if-the-posterior-sd-for-any-parameter-or-qoi-is-more-than-0-1-times-the-prior-sd-then-print-out-a-note-the-prior-dist/)) is to compare the posterior standard deviation (i.e., precision of the effect estimate after looking at the data) to the prior standard deviation (i.e., uncertainty of the effect estimate before looking at the data). In the case that a prior is influential, the ratio of the precision to uncertainty will be large. Put another way, we learn little more about the posterior from observing the data because the prior was already highly informative. Gelman's recommended threshold for determining whether a prior is informative is if the posterior standard deviation for an effect is more than 0.1 times the prior standard deviation. The able below provides this metric for each predictor from the final model reported in the study.
 
 ```{r PriorSensitivityCheck}
 #get the posterior samples from the final model
-posteriors <- posterior_samples(TwoPL_itmfn)
+posteriors <- as_draws_df(TwoPL_itmex)
 
 #get the fixed effects for the item easiness
 beta <- posteriors %>%
@@ -156,7 +136,7 @@ beta <- posteriors %>%
 
 #do the same for item discrimination
 alpha <- posteriors %>%
-  select("b_logalpha_Intercept") %>%
+  select(starts_with("b_logalpha")) %>%
   apply(., 2, function(x) sd(x)/sd(posteriors$prior_b_logalpha)) %>%
   as.matrix()
 
@@ -164,9 +144,8 @@ alpha <- posteriors %>%
 result <- rbind(beta, alpha) %>%
   as.data.frame() %>%
   add_column("Prior Influence" = ifelse(.[, 1] >= 0.1, "Informative", "Uninformative")) %>%
-  rename("Ratio (Posterior:Prior)" = V1) %>%
-  slice(1, 18, 2:11, 14:15, 17, 16, 12:13)
-row.names(result) <- c("Easiness Intercept", "Discrimination Intercept", "Dependency: Butter", "Dependency: Arm", "Dependency: Shore", "Dependency: Letter", "Dependency: Queen", "Dependency: Cabin", "Dependency: Pole", "Dependency: Ticket", "Dependency: Grass", "Dependency: Engine", "HAL Frequency: Trial 1", "HAL Frequency: Trial 2 or 3", "Age of Acquisition: Trial 1 or 2", "Age of Acquisition: Trial 3", "Body-Object Integration", "Concreteness")
+  rename("Ratio (Posterior:Prior)" = V1)
+row.names(result) <- paste(rep(c("Easiness:", "Discrimination:"), each = 11), rep(c("Intercept", "Trial 2", "Trial 3", "Item Pos. (linear)", "Item Pos. (quadratic)", "Word Frequency", "Concreteness", "Semantic Diversity", "Age of Acquisition", "Body-Object Integration", "Phonemes"), 2))
 rm(posteriors, beta, alpha)
 
 #get resulting table
@@ -176,7 +155,7 @@ result %>%
   kable_classic(full_width = FALSE, position = "float_right")
 ```
 
-The table of these posterior and prior comparison results is shown here. For convenience, only those whose threshold exceeds the recommended > 0.10 ratio are bolded. Generally, the findings suggest that the priors performed as expected: they were weakly informative and did not seemingly have undue influence on the posterior estimates. Notably, the exceptions correspond to parameter estimates whose 95% credible intervals included zero (e.g., those that might be considered non-significant). This is not unexpected as the result essentially indicates that even after looking at the data we do not change our prior beliefs, which were that the effects were either zero or very small. The influence of the prior on these null findings reflects a point made earlier regarding how Bayesian methods are generally unaffected by multiple comparisons. 
+The table of these posterior and prior comparison results is shown here. For convenience, only those whose threshold exceeds the recommended > 0.10 ratio are bolded. Generally, the findings suggest that the priors performed as expected: they were weakly informative and did not seemingly have undue influence on the posterior estimates. Notably, the exceptions are the discrimination intercept, which had a 95% credible interval that included zero, and the item position coefficients that had relatively larger standard errors. This is not unexpected as the result essentially indicates that even after looking at the data we do not change our prior beliefs, which were that the effects were either zero or very wide. The influence of the prior on these null findings reflects a point made earlier regarding how Bayesian methods are generally unaffected by multiple comparisons. 
 
 An important point to emphasize at this juncture is the implication of a "significant" finding in Bayesian methods. As discussed throughout this section on priors, the priors here are skeptical of an effect in the sense that they place greatest weight on an effect estimate of zero or close to zero and ambivalence regarding the direction of the effect (i.e., it is just as equally probable that the sign is positive of negative). In the context of the current study, this means that, despite the hypotheses regarding the presence and direction of specific effects, the priors for these predictors are specified in this skeptical way so as to avoid the introduction of experimenter bias. In regard to the robustness of the effects observed, the fact that they are observed from the information provided by the data despite these skeptical priors also helps build confidence in the presence of these effects.
 
@@ -188,26 +167,27 @@ For readers unfamiliar with these model checks, a brief overview of each is prov
 
 In the case that the model checks are appropriate, it is appropriate to examine the posterior distribution and begin inference based on the results. While there are more parameters estimated by the models, posterior summaries of the coefficients in each model are shown. The posterior is summarized as a density plot that reflects the probability distribution of the parameter based on integrating our prior knowledge and observed data. The density plot shows the 95% credible interval with the 80% credible interval shown as a shaded area. Unlike frequentist confidence intervals, these credible intervals can be interpreted as the probability of the parameter having a specific value. For example, if the 95% credible ranges from 0.50 to 1.00, then this means that there is a probability of 0.95 that the parameter has a value somewhere within this interval. This is in contrast to frequentist confidence intervals where the same interval would be interpreted as meaning that 95% of point estimates based on the same statistical test applied to an infinite number of random samples of the same population will be within this interval. Thus, where the credible interval directly summarizes the our beliefs about the parameter and our uncertainty about its true value, the confidence interval only reflects point estimates that we would expect to observe if the study and statistical methods were repeated an infinite number of times. Posterior predictive checks of the models are then also presented as they were for the final model in the corresponding manuscript. There is one additional model exploration plot provided in this section that has not been addressed before in this document: the conditional effects plot. As the predictors in these models are correlated and have their effects estimated on the logit scale, it can be challenging to look at the model estimates and understand the implication of these values in an intuitive manner. One way to address this is to visualize how the predicted outcome of the model changes as a function of each predictor while holding all other predictors constant (e.g., at their mean value). The resulting plot is the conditional effects plot. In the case of these models, this plot shows, for each predictor, what happens to the predicted probability of a correct response as the value of the predictor changes and all other model values are held constant. These plots are not realistic as it is not reasonable to assume that there exist words whose traits can vary only on one property at a time; however, they do provide a quick method of understanding the relative effect of each predictor by showing its linear trend as implied by the model. As a result, these plots should not be used for prediction or extrapolation in any regard; instead, if the goal is prediction of responses, then the entire model should be used, and extrapolation of these predictions to values not observed in this study should be avoided. These plots are simply to help contextualize the meaning of the effect estimate in the model.
 
-## Rasch Intercept
+## Rasch Fixed Items
 
 ```{r RaschPlots}
 mcmc_plot(Rasch_inter, type = "nuts_divergence")
 mcmc_plot(Rasch_inter, type = "nuts_treedepth")
-mcmc_plot(Rasch_inter, type = "trace")
+mcmc_plot(Rasch_inter, type = "trace", variable = "b_Item", regex = TRUE)
+mcmc_plot(Rasch_inter, type = "trace", variable = "sd_", regex = TRUE)
 mcmc_plot(Rasch_inter, type = "rhat_hist", binwidth = 0.0001)
 mcmc_plot(Rasch_inter, type = "neff_hist", binwidth = 0.1)
 ```
 
-The intercept only Rasch model demonstrated no evidence of estimation concerns that would raise concerns for the validity of the results. As a result, we can look at the results from the model overall.
+The fixed items Rasch model demonstrated no evidence of estimation concerns that would raise concerns for the validity of the results. As a result, we can look at the results from the model overall.
 
 ```{r RaschResults}
-mcmc_plot(Rasch_inter, type = "areas_ridges", prob = 0.80, prob_outer = 0.95, regex_pars = "b_")
-pp_check(Rasch_inter, nsamples = 50, type = "bars")
-pp_check(Rasch_inter, nsamples = 50, type = "bars_grouped", group = "Item")
-pp_check(Rasch_inter, nsamples = 50, type = "bars_grouped", group = "ID", newdata = subset(df_long, df_long$ID %in% as.factor(sample.int(n = 1219, size = 6, replace = FALSE))))
+mcmc_plot(Rasch_inter, type = "areas_ridges", prob = 0.80, prob_outer = 0.95, variable = "b_Item", regex = TRUE)
+pp_check(Rasch_inter, ndraws = 50, type = "bars")
+pp_check(Rasch_inter, ndraws = 50, type = "bars_grouped", group = "Item")
+pp_check(Rasch_inter, ndraws = 50, type = "bars_grouped", group = "ID", newdata = subset(df_long, df_long$ID %in% as.factor(sample.int(n = 1219, size = 20, replace = FALSE))))
 ```
 
-Even with no predictors and fewer parameters in the Rasch model, the model does very well in predicting responses. Again, as this is an intercept only model, there is only one parameter to summarize with the posterior. The density plot of the intercept estimate demonstrates that there is high probability that the intercept is positive with a mode around 0.65. The following general model summary integrates basic model validity statistics and posterior summaries for additional parameters.
+Even with no predictors and fewer parameters in the Rasch model, the model does very well in predicting responses. The density plot of the item easiness estimates demonstrates that most items are fairly easy. The following general model summary integrates basic model validity statistics and posterior summaries for additional parameters.
 
 ```{r RaschSummary}
 summary(Rasch_inter)
@@ -222,326 +202,200 @@ To help clarify the meaning of some major elements of the above output, consider
 6. "Bulk_ESS" is the effective sample size based on rank normalized draws and estimates the sampling efficiency of the mean of the posterior, and
 7. "Tail_ESS" is the minimum of the effect sample sizes in the 5% and 95% quantiles.
 
-## 2PL Intercept
+## 2PL Fixed Items
 
 ```{r 2PLInterPlots}
 mcmc_plot(TwoPL_inter, type = "nuts_divergence")
 mcmc_plot(TwoPL_inter, type = "nuts_treedepth")
-mcmc_plot(TwoPL_inter, type = "trace")
+mcmc_plot(TwoPL_inter, type = "trace", variable = "b_beta_Item", regex = TRUE)
+mcmc_plot(TwoPL_inter, type = "trace", variable = "b_logalpha_Item", regex = TRUE)
+mcmc_plot(TwoPL_inter, type = "trace", variable = "sd_", regex = TRUE)
 mcmc_plot(TwoPL_inter, type = "rhat_hist", binwidth = 0.0001)
 mcmc_plot(TwoPL_inter, type = "neff_hist", binwidth = 0.1)
 ```
 
-The intercept only 2PL model demonstrated no evidence of estimation concerns that would raise concerns for the validity of the results. As a result, we can look at the results from the model overall.
+The fixed item 2PL model demonstrated no evidence of estimation concerns that would raise concerns for the validity of the results. As a result, we can look at the results from the model overall.
 
 ```{r 2PLInterResults}
-mcmc_plot(TwoPL_inter, type = "areas_ridges", prob = 0.80, prob_outer = 0.95, regex_pars = "b_")
-pp_check(TwoPL_inter, nsamples = 50, type = "bars")
-pp_check(TwoPL_inter, nsamples = 50, type = "bars_grouped", group = "Item")
-pp_check(TwoPL_inter, nsamples = 50, type = "bars_grouped", group = "ID", newdata = subset(df_long, df_long$ID %in% as.factor(sample.int(n = 1219, size = 6, replace = FALSE))))
+mcmc_plot(TwoPL_inter, type = "areas_ridges", prob = 0.80, prob_outer = 0.95, variable = "b_beta_Item", regex = TRUE)
+mcmc_plot(TwoPL_inter, type = "areas_ridges", prob = 0.80, prob_outer = 0.95, variable = "b_logalpha_Item", regex = TRUE)
+pp_check(TwoPL_inter, ndraws = 50, type = "bars")
+pp_check(TwoPL_inter, ndraws = 50, type = "bars_grouped", group = "Item")
+pp_check(TwoPL_inter, ndraws = 50, type = "bars_grouped", group = "ID", newdata = subset(df_long, df_long$ID %in% as.factor(sample.int(n = 1219, size = 20, replace = FALSE))))
 ```
 
-Much like with the Rasch model, the 2PL intercept-only model does very well in predicting responses. Although this is an intercept only model, there are two intercepts (one for difficulty/beta and one for discrimination/alpha) being estimated since the 2PL model is a non-linear model. Note that the model's name for the discrimination parameter is "logalpha." This name reflects the fact that the alpha parameter was log-transformed to ensure that it was constrained in estimation to positive values. The following general model summary integrates basic model validity statistics and posterior summaries for additional parameters. See the guide at the end of the Rasch intercept tab for details regarding the meaning of each value.
+Much like with the Rasch model, the 2PL fixed item model does very well in predicting responses. There are two parameters (one for difficulty/beta and one for discrimination/alpha) being estimated since the 2PL model is a non-linear model. Note that the model's name for the discrimination parameter is "logalpha." This name reflects the fact that the alpha parameter was log-transformed to ensure that it was constrained in estimation to positive values. The following general model summary integrates basic model validity statistics and posterior summaries for additional parameters. See the guide at the end of the Rasch intercept tab for details regarding the meaning of each value.
 
 ```{r 2PLInterSummary}
 summary(TwoPL_inter)
 ```
 
-## All Trials Fixed & Random Intercepts
+## Multidimensional 2PL Model
 
-```{r 2PLTrRanIntPlots}
-mcmc_plot(TwoPL_ranItemTrialsInt, type = "nuts_divergence")
-mcmc_plot(TwoPL_ranItemTrialsInt, type = "nuts_treedepth")
-mcmc_plot(TwoPL_ranItemTrialsInt, type = "trace", regex_pars = "b_")
-mcmc_plot(TwoPL_ranItemTrialsInt, type = "trace", regex_pars = "sd_")
-mcmc_plot(TwoPL_ranItemTrialsInt, type = "trace", regex_pars = "cor_")
-mcmc_plot(TwoPL_ranItemTrialsInt, type = "rhat_hist", binwidth = 0.0001)
-mcmc_plot(TwoPL_ranItemTrialsInt, type = "neff_hist", binwidth = 0.1)
+```{r 2PLMultiPlots}
+mcmc_plot(TwoPL_multi, type = "nuts_divergence")
+mcmc_plot(TwoPL_multi, type = "nuts_treedepth")
+mcmc_plot(TwoPL_multi, type = "trace", variable = "b_beta_Item", regex = TRUE)
+mcmc_plot(TwoPL_multi, type = "trace", variable = "b_logalpha_Item", regex = TRUE)
+mcmc_plot(TwoPL_multi, type = "trace", variable = "sd_", regex = TRUE)
+mcmc_plot(TwoPL_multi, type = "rhat_hist", binwidth = 0.0001)
+mcmc_plot(TwoPL_multi, type = "neff_hist", binwidth = 0.1)
 ```
 
-The 2PL model with varying intercepts across trials and fixed parameter intercepts demonstrated no evidence of estimation concerns that would raise concerns for the validity of the results. Just for the sake of clarification, readers may note that there are considerably more trace plots included in these analyses. This is because there are additional parameters being estimated for these models as there are correlations between each item's difficulty and discrimination intercepts across each trial in addition to the standard deviation of the random effects for difficulty, discrimination, and intercept across trials. Since there are no validity concerns, we can look at the results from the model overall.
+The 2PL model with a unique factor per trial shows no significant modeling concerns. Since there are no validity concerns, we can look at the results from the model overall.
 
-```{r 2PLTrRanIntResults}
-mcmc_plot(TwoPL_ranItemTrialsInt, type = "areas_ridges", prob = 0.80, prob_outer = 0.95, regex_pars = "b_")
-pp_check(TwoPL_ranItemTrialsInt, nsamples = 50, type = "bars")
-pp_check(TwoPL_ranItemTrialsInt, nsamples = 50, type = "bars_grouped", group = "Item")
-pp_check(TwoPL_ranItemTrialsInt, nsamples = 50, type = "bars_grouped", group = "ID", newdata = subset(df_long, df_long$ID %in% as.factor(sample.int(n = 1219, size = 6, replace = FALSE))))
-```
-
-Like the other 2PL models, this model estimates responses with high accuracy. The following general model summary integrates basic model validity statistics and posterior summaries for additional parameters. See the guide at the end of the Rasch intercept tab for details regarding the meaning of each value.
-
-```{r 2PLTrRanIntSummary}
-summary(TwoPL_ranItemTrialsInt)
-```
-
-## All Trials Fixed Intercept
-
-```{r 2PLTrFixIntPlots}
-mcmc_plot(TwoPL_ranItemTrialsNoInt, type = "nuts_divergence")
-mcmc_plot(TwoPL_ranItemTrialsNoInt, type = "nuts_treedepth")
-mcmc_plot(TwoPL_ranItemTrialsNoInt, type = "trace", regex_pars = "b_")
-mcmc_plot(TwoPL_ranItemTrialsNoInt, type = "trace", regex_pars = "sd_")
-mcmc_plot(TwoPL_ranItemTrialsNoInt, type = "trace", regex_pars = "cor_")
-mcmc_plot(TwoPL_ranItemTrialsNoInt, type = "rhat_hist", binwidth = 0.0001)
-mcmc_plot(TwoPL_ranItemTrialsNoInt, type = "neff_hist", binwidth = 0.1)
-```
-
-The 2PL model with fixed intercepts but no random intercepts demonstrated no evidence of estimation concerns that would raise concerns for the validity of the results. Since there are no validity concerns, we can look at the results from the model overall.
-
-```{r 2PLTrFixIntResults}
-mcmc_plot(TwoPL_ranItemTrialsNoInt, type = "areas_ridges", prob = 0.80, prob_outer = 0.95, regex_pars = "b_")
-pp_check(TwoPL_ranItemTrialsNoInt, nsamples = 50, type = "bars")
-pp_check(TwoPL_ranItemTrialsNoInt, nsamples = 50, type = "bars_grouped", group = "Item")
-pp_check(TwoPL_ranItemTrialsNoInt, nsamples = 50, type = "bars_grouped", group = "ID", newdata = subset(df_long, df_long$ID %in% as.factor(sample.int(n = 1219, size = 6, replace = FALSE))))
+```{r 2PLMultiResults}
+mcmc_plot(TwoPL_multi, type = "areas_ridges", prob = 0.80, prob_outer = 0.95, variable = "b_beta_Item", regex = TRUE)
+mcmc_plot(TwoPL_multi, type = "areas_ridges", prob = 0.80, prob_outer = 0.95, variable = "b_logalpha_Item", regex = TRUE)
+pp_check(TwoPL_multi, ndraws = 50, type = "bars")
+pp_check(TwoPL_multi, ndraws = 50, type = "bars_grouped", group = "Item")
+pp_check(TwoPL_multi, ndraws = 50, type = "bars_grouped", group = "ID", newdata = subset(df_long, df_long$ID %in% as.factor(sample.int(n = 1219, size = 20, replace = FALSE))))
 ```
 
 Like the other 2PL models, this model estimates responses with high accuracy. The following general model summary integrates basic model validity statistics and posterior summaries for additional parameters. See the guide at the end of the Rasch intercept tab for details regarding the meaning of each value.
 
-```{r 2PLTrFixIntSummary}
-summary(TwoPL_ranItemTrialsNoInt)
+```{r 2PLMultiSummary}
+summary(TwoPL_multi)
 ```
 
-## Trial 1 Fixed & Random Intercepts
+## Latent Change Model
 
-```{r 2PLT1RanIntPlots}
-mcmc_plot(TwoPL_ranItemTrial1Int, type = "nuts_divergence")
-mcmc_plot(TwoPL_ranItemTrial1Int, type = "nuts_treedepth")
-mcmc_plot(TwoPL_ranItemTrial1Int, type = "trace", regex_pars = "b_")
-mcmc_plot(TwoPL_ranItemTrial1Int, type = "trace", regex_pars = "sd_")
-mcmc_plot(TwoPL_ranItemTrial1Int, type = "trace", regex_pars = "cor_")
-mcmc_plot(TwoPL_ranItemTrial1Int, type = "rhat_hist", binwidth = 0.0001)
-mcmc_plot(TwoPL_ranItemTrial1Int, type = "neff_hist", binwidth = 0.1)
+```{r 2PLChangePlots}
+mcmc_plot(TwoPL_chnge, type = "nuts_divergence")
+mcmc_plot(TwoPL_chnge, type = "nuts_treedepth")
+mcmc_plot(TwoPL_chnge, type = "trace", variable = "b_beta_Item", regex = TRUE)
+mcmc_plot(TwoPL_chnge, type = "trace", variable = "b_logalpha_Item", regex = TRUE)
+mcmc_plot(TwoPL_chnge, type = "trace", variable = "sd_", regex = TRUE)
+mcmc_plot(TwoPL_chnge, type = "rhat_hist", binwidth = 0.0001)
+mcmc_plot(TwoPL_chnge, type = "neff_hist", binwidth = 0.1)
 ```
 
-When initially run, this model did produce two divergent transitions after warmup. To address this estimation issue, the adaptive delta value for the step size was increased from 0.80 to 0.95. With this higher adaptive delta, the 2PL model with varying intercepts for trial 1 versus trials 2 and 3 demonstrated no evidence of estimation concerns that would raise concerns for the validity of the results. Since there are no validity concerns, we can look at the results from the model overall.
+The 2PL model with factors for change over each trial shows no significant modeling concerns either. Since there are no validity concerns, we can look at the results from the model overall.
 
-```{r 2PLT1RanIntResults}
-mcmc_plot(TwoPL_ranItemTrial1Int, type = "areas_ridges", prob = 0.80, prob_outer = 0.95, regex_pars = "b_")
-pp_check(TwoPL_ranItemTrial1Int, nsamples = 50, type = "bars")
-pp_check(TwoPL_ranItemTrial1Int, nsamples = 50, type = "bars_grouped", group = "Item")
-pp_check(TwoPL_ranItemTrial1Int, nsamples = 50, type = "bars_grouped", group = "ID", newdata = subset(df_long, df_long$ID %in% as.factor(sample.int(n = 1219, size = 6, replace = FALSE))))
+```{r 2PLChangeResults}
+mcmc_plot(TwoPL_chnge, type = "areas_ridges", prob = 0.80, prob_outer = 0.95, variable = "b_beta_Item", regex = TRUE)
+mcmc_plot(TwoPL_chnge, type = "areas_ridges", prob = 0.80, prob_outer = 0.95, variable = "b_logalpha_Item", regex = TRUE)
+pp_check(TwoPL_chnge, ndraws = 50, type = "bars")
+pp_check(TwoPL_chnge, ndraws = 50, type = "bars_grouped", group = "Item")
+pp_check(TwoPL_chnge, ndraws = 50, type = "bars_grouped", group = "ID", newdata = subset(df_long, df_long$ID %in% as.factor(sample.int(n = 1219, size = 20, replace = FALSE))))
 ```
 
-Like the other 2PL models, this model estimates responses with high accuracy. The following general model summary integrates basic model validity statistics and posterior summaries for additional parameters. See the guide at the end of the Rasch intercept tab for details regarding the meaning of each value.
+Consistent with the other 2PL models so far, the model appears to predict the data generation process closely. See the guide at the end of the Rasch intercept tab for details regarding the meaning of each value.
 
-```{r 2PLT1RanIntSummary}
-summary(TwoPL_ranItemTrial1Int)
+```{r 2PLChangeSummary}
+summary(TwoPL_chnge)
 ```
 
-## Trial 1 Fixed Intercept
-
-```{r 2PLT1RanNoIntPlots}
-mcmc_plot(TwoPL_ranItemTrial1NoInt, type = "nuts_divergence")
-mcmc_plot(TwoPL_ranItemTrial1NoInt, type = "nuts_treedepth")
-mcmc_plot(TwoPL_ranItemTrial1NoInt, type = "trace", regex_pars = "b_")
-mcmc_plot(TwoPL_ranItemTrial1NoInt, type = "trace", regex_pars = "sd_")
-mcmc_plot(TwoPL_ranItemTrial1NoInt, type = "trace", regex_pars = "cor_")
-mcmc_plot(TwoPL_ranItemTrial1NoInt, type = "rhat_hist", binwidth = 0.0001)
-mcmc_plot(TwoPL_ranItemTrial1NoInt, type = "neff_hist", binwidth = 0.1)
-```
-
-When initially run, this model also produced a divergent transition after warmup. To address this estimation issue, the adaptive delta value for the step size was increased from 0.80 to 0.95. With this higher adaptive delta, the 2PL model with fixed intercepts for trial 1 versus trials 2 and 3 demonstrated no evidence of estimation concerns that would raise concerns for the validity of the results. Since there are no validity concerns, we can look at the results from the model overall.
-
-```{r 2PLT1RanNoIntResults}
-mcmc_plot(TwoPL_ranItemTrial1NoInt, type = "areas_ridges", prob = 0.80, prob_outer = 0.95, regex_pars = "b_")
-pp_check(TwoPL_ranItemTrial1NoInt, nsamples = 50, type = "bars")
-pp_check(TwoPL_ranItemTrial1NoInt, nsamples = 50, type = "bars_grouped", group = "Item")
-pp_check(TwoPL_ranItemTrial1NoInt, nsamples = 50, type = "bars_grouped", group = "ID", newdata = subset(df_long, df_long$ID %in% as.factor(sample.int(n = 1219, size = 6, replace = FALSE))))
-```
-
-Like the other 2PL models, this model estimates responses with high accuracy. The following general model summary integrates basic model validity statistics and posterior summaries for additional parameters. See the guide at the end of the Rasch intercept tab for details regarding the meaning of each value.
-
-```{r 2PLT1RanNoIntSummary}
-summary(TwoPL_ranItemTrial1NoInt)
-```
-
-## Local Dependency Model
-
-```{r 2PLLocDepPlots}
-mcmc_plot(TwoPL_depmd, type = "nuts_divergence")
-mcmc_plot(TwoPL_depmd, type = "nuts_treedepth")
-mcmc_plot(TwoPL_depmd, type = "trace", regex_pars = "b_")
-mcmc_plot(TwoPL_depmd, type = "trace", regex_pars = "sd_")
-mcmc_plot(TwoPL_depmd, type = "trace", regex_pars = "cor_")
-mcmc_plot(TwoPL_depmd, type = "rhat_hist", binwidth = 0.0001)
-mcmc_plot(TwoPL_depmd, type = "neff_hist", binwidth = 0.1)
-```
-
-The 2PL model with a local dependency effect demonstrated no evidence of estimation concerns that would raise concerns for the validity of the results. Since there are no validity concerns, we can look at the results from the model overall.
-
-```{r 2PLLocDepResults}
-mcmc_plot(TwoPL_depmd, type = "areas_ridges", prob = 0.80, prob_outer = 0.95, regex_pars = "b_")
-pp_check(TwoPL_depmd, nsamples = 50, type = "bars")
-pp_check(TwoPL_depmd, nsamples = 50, type = "bars_grouped", group = "Item")
-pp_check(TwoPL_depmd, nsamples = 50, type = "bars_grouped", group = "ID", newdata = subset(df_long, df_long$ID %in% as.factor(sample.int(n = 1219, size = 6, replace = FALSE))))
-```
-
-Like the other 2PL models, this model estimates responses with high accuracy. The following general model summary integrates basic model validity statistics and posterior summaries for additional parameters. See the guide at the end of the Rasch intercept tab for details regarding the meaning of each value.
-
-```{r 2PLLocDepSummary}
-summary(TwoPL_depmd)
-```
-
-## Local Dependency (Unique by Item Easiness)
-
-```{r 2PLDepEaPlots}
-mcmc_plot(TwoPL_depea, type = "nuts_divergence")
-mcmc_plot(TwoPL_depea, type = "nuts_treedepth")
-mcmc_plot(TwoPL_depea, type = "trace", regex_pars = "b_")
-mcmc_plot(TwoPL_depea, type = "trace", regex_pars = "sd_")
-mcmc_plot(TwoPL_depea, type = "trace", regex_pars = "cor_")
-mcmc_plot(TwoPL_depea, type = "rhat_hist", binwidth = 0.0001)
-mcmc_plot(TwoPL_depea, type = "neff_hist", binwidth = 0.1)
-```
-
-The 2PL model with a local dependency effect only on the easiness parameter demonstrated no evidence of estimation concerns that would raise concerns for the validity of the results. Since there are no validity concerns, we can look at the results from the model overall.
-
-```{r 2PLDepEaResults}
-mcmc_plot(TwoPL_depea, type = "areas_ridges", prob = 0.80, prob_outer = 0.95, regex_pars = "b_")
-pp_check(TwoPL_depea, nsamples = 50, type = "bars")
-pp_check(TwoPL_depea, nsamples = 50, type = "bars_grouped", group = "Item")
-pp_check(TwoPL_depea, nsamples = 50, type = "bars_grouped", group = "ID", newdata = subset(df_long, df_long$ID %in% as.factor(sample.int(n = 1219, size = 6, replace = FALSE))))
-```
-
-Like the other 2PL models, this model estimates responses with high accuracy. The following general model summary integrates basic model validity statistics and posterior summaries for additional parameters. See the guide at the end of the Rasch intercept tab for details regarding the meaning of each value.
-
-```{r 2PLDepEaSummary}
-summary(TwoPL_depea)
-```
-
-## Local Dependency (Shared Effect on Item Easiness)
-
-```{r 2PLdepsiPlots}
-mcmc_plot(TwoPL_depsi, type = "nuts_divergence")
-mcmc_plot(TwoPL_depsi, type = "nuts_treedepth")
-mcmc_plot(TwoPL_depsi, type = "trace", regex_pars = "b_")
-mcmc_plot(TwoPL_depsi, type = "trace", regex_pars = "sd_")
-mcmc_plot(TwoPL_depsi, type = "trace", regex_pars = "cor_")
-mcmc_plot(TwoPL_depsi, type = "rhat_hist", binwidth = 0.0001)
-mcmc_plot(TwoPL_depsi, type = "neff_hist", binwidth = 0.1)
-```
-
-The 2PL model with a single local dependency effect across items on the easiness parameter demonstrated no evidence of estimation concerns that would raise concerns for the validity of the results. Since there are no validity concerns, we can look at the results from the model overall.
-
-```{r 2PLdepsiResults}
-mcmc_plot(TwoPL_depsi, type = "areas_ridges", prob = 0.80, prob_outer = 0.95, regex_pars = "b_")
-pp_check(TwoPL_depsi, nsamples = 50, type = "bars")
-pp_check(TwoPL_depsi, nsamples = 50, type = "bars_grouped", group = "Item")
-pp_check(TwoPL_depsi, nsamples = 50, type = "bars_grouped", group = "ID", newdata = subset(df_long, df_long$ID %in% as.factor(sample.int(n = 1219, size = 6, replace = FALSE))))
-```
-
-Like the other 2PL models, this model estimates responses with high accuracy. The following general model summary integrates basic model validity statistics and posterior summaries for additional parameters. See the guide at the end of the Rasch intercept tab for details regarding the meaning of each value.
-
-```{r 2PLdepsiSummary}
-summary(TwoPL_depsi)
-```
-
-## Learning (Growth) Model
+## Latent Growth (Learning) Model
 
 ```{r 2PLLearnPlots}
 mcmc_plot(TwoPL_learn, type = "nuts_divergence")
 mcmc_plot(TwoPL_learn, type = "nuts_treedepth")
-mcmc_plot(TwoPL_learn, type = "trace", regex_pars = "b_")
-mcmc_plot(TwoPL_learn, type = "trace", regex_pars = "sd_")
-mcmc_plot(TwoPL_learn, type = "trace", regex_pars = "cor_")
+mcmc_plot(TwoPL_learn, type = "trace", variable = "b_beta_Item", regex = TRUE)
+mcmc_plot(TwoPL_learn, type = "trace", variable = "b_logalpha_Item", regex = TRUE)
+mcmc_plot(TwoPL_learn, type = "trace", variable = "sd_", regex = TRUE)
 mcmc_plot(TwoPL_learn, type = "rhat_hist", binwidth = 0.0001)
 mcmc_plot(TwoPL_learn, type = "neff_hist", binwidth = 0.1)
 ```
 
-The 2PL model with a multidimensional growth effect demonstrated no evidence of estimation concerns that would raise concerns for the validity of the results. Since there are no validity concerns, we can look at the results from the model overall.
+The 2PL model with a growth/learning factor also yields no estimation errors. Since there are no validity concerns for the model, we can look at the results from the model.
 
 ```{r 2PLLearnResults}
-mcmc_plot(TwoPL_learn, type = "areas_ridges", prob = 0.80, prob_outer = 0.95, regex_pars = "b_")
-pp_check(TwoPL_learn, nsamples = 50, type = "bars")
-pp_check(TwoPL_learn, nsamples = 50, type = "bars_grouped", group = "Item")
-pp_check(TwoPL_learn, nsamples = 50, type = "bars_grouped", group = "ID", newdata = subset(df_long, df_long$ID %in% as.factor(sample.int(n = 1219, size = 6, replace = FALSE))))
+mcmc_plot(TwoPL_learn, type = "areas_ridges", prob = 0.80, prob_outer = 0.95, variable = "b_beta_Item", regex = TRUE)
+mcmc_plot(TwoPL_learn, type = "areas_ridges", prob = 0.80, prob_outer = 0.95, variable = "b_logalpha_Item", regex = TRUE)
+pp_check(TwoPL_learn, ndraws = 50, type = "bars")
+pp_check(TwoPL_learn, ndraws = 50, type = "bars_grouped", group = "Item")
+pp_check(TwoPL_learn, ndraws = 50, type = "bars_grouped", group = "ID", newdata = subset(df_long, df_long$ID %in% as.factor(sample.int(n = 1219, size = 20, replace = FALSE))))
 ```
 
-Like the other 2PL models, this model estimates responses with high accuracy. The following general model summary integrates basic model validity statistics and posterior summaries for additional parameters. See the guide at the end of the Rasch intercept tab for details regarding the meaning of each value.
+Continuing the trends of the other models, these posterior checks closely align with the observed data. See the guide at the end of the Rasch intercept tab for details regarding the meaning of each value.
 
 ```{r 2PLLearnSummary}
 summary(TwoPL_learn)
 ```
 
-## Multidimensional Model
+## Local Dependency Model
 
-```{r 2PLmirtPlots}
-mcmc_plot(TwoPL_multi, type = "nuts_divergence")
-mcmc_plot(TwoPL_multi, type = "nuts_treedepth")
-mcmc_plot(TwoPL_multi, type = "trace", regex_pars = "b_")
-mcmc_plot(TwoPL_multi, type = "trace", regex_pars = "sd_")
-mcmc_plot(TwoPL_multi, type = "trace", regex_pars = "cor_")
-mcmc_plot(TwoPL_multi, type = "rhat_hist", binwidth = 0.0001)
-mcmc_plot(TwoPL_multi, type = "neff_hist", binwidth = 0.1)
+```{r 2PLDependPlots}
+mcmc_plot(TwoPL_depmd, type = "nuts_divergence")
+mcmc_plot(TwoPL_depmd, type = "nuts_treedepth")
+mcmc_plot(TwoPL_depmd, type = "trace", variable = "b_beta_Item", regex = TRUE)
+mcmc_plot(TwoPL_depmd, type = "trace", variable = "b_logalpha_Item", regex = TRUE)
+mcmc_plot(TwoPL_depmd, type = "trace", variable = "sd_", regex = TRUE)
+mcmc_plot(TwoPL_depmd, type = "rhat_hist", binwidth = 0.0001)
+mcmc_plot(TwoPL_depmd, type = "neff_hist", binwidth = 0.1)
 ```
 
-The 2PL model with multidimensional factors by trial demonstrated no evidence of estimation concerns that would raise concerns for the validity of the results. When initially run, the tail effective sample sizes were low. The model was refit with slightly more iterations (4000 - 2000 warmup/chain), which resolved the issue. Since there are no validity concerns, we can look at the results from the model overall.
+The local dependency effect on the 2PL model fit without any modeling concerns. Given the lack of validity issues, the results from the model overall are shown next.
 
-```{r 2PLmirtResults}
-mcmc_plot(TwoPL_multi, type = "areas_ridges", prob = 0.80, prob_outer = 0.95, regex_pars = "b_")
-pp_check(TwoPL_multi, nsamples = 50, type = "bars")
-pp_check(TwoPL_multi, nsamples = 50, type = "bars_grouped", group = "Item")
-pp_check(TwoPL_multi, nsamples = 50, type = "bars_grouped", group = "ID", newdata = subset(df_long, df_long$ID %in% as.factor(sample.int(n = 1219, size = 6, replace = FALSE))))
+```{r 2PLDependResults}
+mcmc_plot(TwoPL_depmd, type = "areas_ridges", prob = 0.80, prob_outer = 0.95, variable = "b_beta_Item", regex = TRUE)
+mcmc_plot(TwoPL_depmd, type = "areas_ridges", prob = 0.80, prob_outer = 0.95, variable = "b_logalpha_Item", regex = TRUE)
+pp_check(TwoPL_depmd, ndraws = 50, type = "bars")
+pp_check(TwoPL_depmd, ndraws = 50, type = "bars_grouped", group = "Item")
+pp_check(TwoPL_depmd, ndraws = 50, type = "bars_grouped", group = "ID", newdata = subset(df_long, df_long$ID %in% as.factor(sample.int(n = 1219, size = 20, replace = FALSE))))
 ```
 
-Like the other 2PL models, this model estimates responses with high accuracy. The following general model summary integrates basic model validity statistics and posterior summaries for additional parameters. See the guide at the end of the Rasch intercept tab for details regarding the meaning of each value.
+As with the other models, the predictive checks closely align to the data. See the guide at the end of the Rasch intercept tab for details regarding the meaning of each value.
 
-```{r 2PLmirtSummary}
-summary(TwoPL_multi)
+```{r 2PLDependSummary}
+summary(TwoPL_depmd)
 ```
 
-## Serial Position Effect
+## Local Dependency by Item Model
 
-```{r 2PLSerialPlots}
-mcmc_plot(TwoPL_srlps, type = "nuts_divergence")
-mcmc_plot(TwoPL_srlps, type = "nuts_treedepth")
-mcmc_plot(TwoPL_srlps, type = "trace", regex_pars = "b_")
-mcmc_plot(TwoPL_srlps, type = "trace", regex_pars = "sd_")
-mcmc_plot(TwoPL_srlps, type = "trace", regex_pars = "cor_")
-mcmc_plot(TwoPL_srlps, type = "rhat_hist", binwidth = 0.0001)
-mcmc_plot(TwoPL_srlps, type = "neff_hist", binwidth = 0.1)
+```{r 2PLUniquePlots}
+mcmc_plot(TwoPL_depun, type = "nuts_divergence")
+mcmc_plot(TwoPL_depun, type = "nuts_treedepth")
+mcmc_plot(TwoPL_depun, type = "trace", variable = "b_beta_Item", regex = TRUE)
+mcmc_plot(TwoPL_depun, type = "trace", variable = "b_logalpha_Item", regex = TRUE)
+mcmc_plot(TwoPL_depun, type = "trace", variable = "sd_", regex = TRUE)
+mcmc_plot(TwoPL_depun, type = "rhat_hist", binwidth = 0.0001)
+mcmc_plot(TwoPL_depun, type = "neff_hist", binwidth = 0.1)
 ```
 
-The 2PL model with a serial position effect demonstrated no evidence of estimation concerns that would raise concerns for the validity of the results. Since there are no validity concerns, we can look at the results from the model overall.
+As with the model with a uniform local dependency effect, the model with a unique dependency effect per item demonstrated no estimation errors, so next is shown the results from the model overall.
 
-```{r 2PLSerialResults}
-mcmc_plot(TwoPL_srlps, type = "areas_ridges", prob = 0.80, prob_outer = 0.95, regex_pars = "b_")
-pp_check(TwoPL_srlps, nsamples = 50, type = "bars")
-pp_check(TwoPL_srlps, nsamples = 50, type = "bars_grouped", group = "Item")
-pp_check(TwoPL_srlps, nsamples = 50, type = "bars_grouped", group = "ID", newdata = subset(df_long, df_long$ID %in% as.factor(sample.int(n = 1219, size = 6, replace = FALSE))))
+```{r 2PLUniqueResults}
+mcmc_plot(TwoPL_depun, type = "areas_ridges", prob = 0.80, prob_outer = 0.95, variable = "b_beta_Item", regex = TRUE)
+mcmc_plot(TwoPL_depun, type = "areas_ridges", prob = 0.80, prob_outer = 0.95, variable = "b_logalpha_Item", regex = TRUE)
+pp_check(TwoPL_depun, ndraws = 50, type = "bars")
+pp_check(TwoPL_depun, ndraws = 50, type = "bars_grouped", group = "Item")
+pp_check(TwoPL_depun, ndraws = 50, type = "bars_grouped", group = "ID", newdata = subset(df_long, df_long$ID %in% as.factor(sample.int(n = 1219, size = 20, replace = FALSE))))
 ```
 
-Like the other 2PL models, this model estimates responses with high accuracy. The following general model summary integrates basic model validity statistics and posterior summaries for additional parameters. See the guide at the end of the Rasch intercept tab for details regarding the meaning of each value.
+These posterior predictive checks also strongly align with the observed data. See the guide at the end of the Rasch intercept tab for details regarding the meaning of each value.
 
-```{r 2PLSerialSummary}
-summary(TwoPL_srlps)
+```{r 2PLUniqueSummary}
+summary(TwoPL_depun)
 ```
 
-## Serial Position Effect by Trial
+## Local Dependency by Trial Model
 
-```{r 2PLSepxTrPlots}
-mcmc_plot(TwoPL_t3spe, type = "nuts_divergence")
-mcmc_plot(TwoPL_t3spe, type = "nuts_treedepth")
-mcmc_plot(TwoPL_t3spe, type = "trace", regex_pars = "b_")
-mcmc_plot(TwoPL_t3spe, type = "trace", regex_pars = "sd_")
-mcmc_plot(TwoPL_t3spe, type = "trace", regex_pars = "cor_")
-mcmc_plot(TwoPL_t3spe, type = "rhat_hist", binwidth = 0.0001)
-mcmc_plot(TwoPL_t3spe, type = "neff_hist", binwidth = 0.1)
+```{r 2PLTrialPlots}
+mcmc_plot(TwoPL_deptr, type = "nuts_divergence")
+mcmc_plot(TwoPL_deptr, type = "nuts_treedepth")
+mcmc_plot(TwoPL_deptr, type = "trace", variable = "b_beta_Item", regex = TRUE)
+mcmc_plot(TwoPL_deptr, type = "trace", variable = "b_logalpha_Item", regex = TRUE)
+mcmc_plot(TwoPL_deptr, type = "trace", variable = "sd_", regex = TRUE)
+mcmc_plot(TwoPL_deptr, type = "rhat_hist", binwidth = 0.0001)
+mcmc_plot(TwoPL_deptr, type = "neff_hist", binwidth = 0.1)
 ```
 
-The 2PL model with a unique serial position effect across each trial demonstrated no evidence of estimation concerns that would raise concerns for the validity of the results. Since there are no validity concerns, we can look at the results from the model overall.
+Decomposing the dependency matrix into unique trial effects, rather than unique item effects, also does not cause any modeling validity concerns. As with the other models, the overall results are shown next.
 
-```{r 2PLSepxTrResults}
-mcmc_plot(TwoPL_t3spe, type = "areas_ridges", prob = 0.80, prob_outer = 0.95, regex_pars = "b_")
-pp_check(TwoPL_t3spe, nsamples = 50, type = "bars")
-pp_check(TwoPL_t3spe, nsamples = 50, type = "bars_grouped", group = "Item")
-pp_check(TwoPL_t3spe, nsamples = 50, type = "bars_grouped", group = "ID", newdata = subset(df_long, df_long$ID %in% as.factor(sample.int(n = 1219, size = 6, replace = FALSE))))
+```{r 2PLTrialResults}
+mcmc_plot(TwoPL_deptr, type = "areas_ridges", prob = 0.80, prob_outer = 0.95, variable = "b_beta_Item", regex = TRUE)
+mcmc_plot(TwoPL_deptr, type = "areas_ridges", prob = 0.80, prob_outer = 0.95, variable = "b_logalpha_Item", regex = TRUE)
+pp_check(TwoPL_deptr, ndraws = 50, type = "bars")
+pp_check(TwoPL_deptr, ndraws = 50, type = "bars_grouped", group = "Item")
+pp_check(TwoPL_deptr, ndraws = 50, type = "bars_grouped", group = "ID", newdata = subset(df_long, df_long$ID %in% as.factor(sample.int(n = 1219, size = 20, replace = FALSE))))
 ```
 
-Like the other 2PL models, this model estimates responses with high accuracy. The following general model summary integrates basic model validity statistics and posterior summaries for additional parameters. See the guide at the end of the Rasch intercept tab for details regarding the meaning of each value.
+Posterior predictive checks are consistent with the other models in that the model predictions and observed data closely align. See the guide at the end of the Rasch intercept tab for details regarding the meaning of each value.
 
-```{r 2PLSepxTrSummary}
-summary(TwoPL_t3spe)
+```{r 2PLTrialSummary}
+summary(TwoPL_deptr)
 ```
 
 ## Item Covariates
@@ -549,20 +403,20 @@ summary(TwoPL_t3spe)
 ```{r 2PLItemCovPlots}
 mcmc_plot(TwoPL_itmex, type = "nuts_divergence")
 mcmc_plot(TwoPL_itmex, type = "nuts_treedepth")
-mcmc_plot(TwoPL_itmex, type = "trace", regex_pars = "b_")
-mcmc_plot(TwoPL_itmex, type = "trace", regex_pars = "sd_")
-mcmc_plot(TwoPL_itmex, type = "trace", regex_pars = "cor_")
+mcmc_plot(TwoPL_itmex, type = "trace", variable = "b_beta", regex = TRUE)
+mcmc_plot(TwoPL_itmex, type = "trace", variable = "b_logalpha", regex = TRUE)
+mcmc_plot(TwoPL_itmex, type = "trace", variable = "sd_", regex = TRUE)
 mcmc_plot(TwoPL_itmex, type = "rhat_hist", binwidth = 0.0001)
 mcmc_plot(TwoPL_itmex, type = "neff_hist", binwidth = 0.1)
 ```
 
-The 2PL model with all item covariates demonstrated no evidence of estimation concerns that would raise concerns for the validity of the results. The first fit did encounter a problem with hitting max treedepth in about 1100 iterations. This was addressed by increasing max treedepth from the default 10 to 20. Since there are no validity concerns, we can look at the results from the model overall.
+The 2PL model with all item covariates demonstrated no evidence of estimation concerns that would raise concerns for the validity of the results. Since there are no validity concerns, we can look at the results from the model overall.
 
 ```{r 2PLItemCovResults}
-mcmc_plot(TwoPL_itmex, type = "areas_ridges", prob = 0.80, prob_outer = 0.95, regex_pars = "b_")
-pp_check(TwoPL_itmex, nsamples = 50, type = "bars")
-pp_check(TwoPL_itmex, nsamples = 50, type = "bars_grouped", group = "Item")
-pp_check(TwoPL_itmex, nsamples = 50, type = "bars_grouped", group = "ID", newdata = subset(df_long, df_long$ID %in% as.factor(sample.int(n = 1219, size = 6, replace = FALSE))))
+mcmc_plot(TwoPL_itmex, type = "areas_ridges", prob = 0.80, prob_outer = 0.95, variable = "b_beta", regex = TRUE)
+mcmc_plot(TwoPL_itmex, type = "areas_ridges", prob = 0.80, prob_outer = 0.95, variable = "b_logalpha", regex = TRUE)
+pp_check(TwoPL_itmex, ndraws = 50, type = "bars")
+pp_check(TwoPL_itmex, ndraws = 50, type = "bars_grouped", group = "ID", newdata = subset(df_long, df_long$ID %in% as.factor(sample.int(n = 1219, size = 20, replace = FALSE))))
 ```
 
 Like the other 2PL models, this model estimates responses with high accuracy. The following general model summary integrates basic model validity statistics and posterior summaries for additional parameters. See the guide at the end of the Rasch intercept tab for details regarding the meaning of each value.
@@ -570,296 +424,6 @@ Like the other 2PL models, this model estimates responses with high accuracy. Th
 ```{r 2PLItemCovSummary}
 summary(TwoPL_itmex)
 ```
-
-## Item Covariates by Trial
-
-```{r 2PLItemCovxTrPlots}
-mcmc_plot(TwoPL_itmcp, type = "nuts_divergence")
-mcmc_plot(TwoPL_itmcp, type = "nuts_treedepth")
-mcmc_plot(TwoPL_itmcp, type = "trace", regex_pars = "b_")
-mcmc_plot(TwoPL_itmcp, type = "trace", regex_pars = "sd_")
-mcmc_plot(TwoPL_itmcp, type = "trace", regex_pars = "cor_")
-mcmc_plot(TwoPL_itmcp, type = "rhat_hist", binwidth = 0.0001)
-mcmc_plot(TwoPL_itmcp, type = "neff_hist", binwidth = 0.1)
-```
-
-Under the default conditions, the 2PL model with item covariates varying across trials produced a single divergent transition after warmup. After increasing adapt delta to 0.85, the model demonstrated no evidence of estimation concerns that would raise concerns for the validity of the results. Since there are no validity concerns, we can look at the results from the model overall.
-
-```{r 2PLItemCovxTrResults}
-mcmc_plot(TwoPL_itmcp, type = "areas_ridges", prob = 0.80, prob_outer = 0.95, regex_pars = "b_")
-pp_check(TwoPL_itmcp, nsamples = 50, type = "bars")
-pp_check(TwoPL_itmcp, nsamples = 50, type = "bars_grouped", group = "Item")
-pp_check(TwoPL_itmcp, nsamples = 50, type = "bars_grouped", group = "ID", newdata = subset(df_long, df_long$ID %in% as.factor(sample.int(n = 1219, size = 6, replace = FALSE))))
-```
-
-Like the other 2PL models, this model estimates responses with high accuracy. The following general model summary integrates basic model validity statistics and posterior summaries for additional parameters. See the guide at the end of the Rasch intercept tab for details regarding the meaning of each value.
-
-```{r 2PLItemCovxTrSummary}
-summary(TwoPL_itmcp)
-```
-
-## Item Covariates with Unique Interactions
-
-```{r 2PLItemCovxUTPlots}
-mcmc_plot(TwoPL_itmcr, type = "nuts_divergence")
-mcmc_plot(TwoPL_itmcr, type = "nuts_treedepth")
-mcmc_plot(TwoPL_itmcr, type = "trace", regex_pars = "b_")
-mcmc_plot(TwoPL_itmcr, type = "trace", regex_pars = "sd_")
-mcmc_plot(TwoPL_itmcr, type = "trace", regex_pars = "cor_")
-mcmc_plot(TwoPL_itmcr, type = "rhat_hist", binwidth = 0.0001)
-mcmc_plot(TwoPL_itmcr, type = "neff_hist", binwidth = 0.1)
-```
-
-The 2PL model with collapsed trial interactions for item covariates demonstrated no evidence of estimation concerns that would raise concerns for the validity of the results. Since there are no validity concerns, we can look at the results from the model overall.
-
-```{r 2PLItemCovxUTResults}
-mcmc_plot(TwoPL_itmcr, type = "areas_ridges", prob = 0.80, prob_outer = 0.95, regex_pars = "b_")
-pp_check(TwoPL_itmcr, nsamples = 50, type = "bars")
-pp_check(TwoPL_itmcr, nsamples = 50, type = "bars_grouped", group = "Item")
-pp_check(TwoPL_itmcr, nsamples = 50, type = "bars_grouped", group = "ID", newdata = subset(df_long, df_long$ID %in% as.factor(sample.int(n = 1219, size = 6, replace = FALSE))))
-```
-
-Like the other 2PL models, this model estimates responses with high accuracy. The following general model summary integrates basic model validity statistics and posterior summaries for additional parameters. See the guide at the end of the Rasch intercept tab for details regarding the meaning of each value.
-
-```{r 2PLItemCovxUTSummary}
-summary(TwoPL_itmcr)
-```
-
-## Reduced Item Covariates Model
-
-```{r 2PLRedItemCovPlots}
-mcmc_plot(TwoPL_itmsd, type = "nuts_divergence")
-mcmc_plot(TwoPL_itmsd, type = "nuts_treedepth")
-mcmc_plot(TwoPL_itmsd, type = "trace", regex_pars = "b_")
-mcmc_plot(TwoPL_itmsd, type = "trace", regex_pars = "sd_")
-mcmc_plot(TwoPL_itmsd, type = "trace", regex_pars = "cor_")
-mcmc_plot(TwoPL_itmsd, type = "rhat_hist", binwidth = 0.0001)
-mcmc_plot(TwoPL_itmsd, type = "neff_hist", binwidth = 0.1)
-```
-
-The 2PL model with the reduced item covariates demonstrated no evidence of estimation concerns that would raise concerns for the validity of the results. Since there are no validity concerns, we can look at the results from the model overall.
-
-```{r 2PLRedItemCovResults}
-mcmc_plot(TwoPL_itmsd, type = "areas_ridges", prob = 0.80, prob_outer = 0.95, regex_pars = "b_")
-pp_check(TwoPL_itmsd, nsamples = 50, type = "bars")
-pp_check(TwoPL_itmsd, nsamples = 50, type = "bars_grouped", group = "Item")
-pp_check(TwoPL_itmsd, nsamples = 50, type = "bars_grouped", group = "ID", newdata = subset(df_long, df_long$ID %in% as.factor(sample.int(n = 1219, size = 6, replace = FALSE))))
-```
-
-Like the other 2PL models, this model estimates responses with high accuracy. The following general model summary integrates basic model validity statistics and posterior summaries for additional parameters. See the guide at the end of the Rasch intercept tab for details regarding the meaning of each value.
-
-```{r 2PLRedItemCovSummary}
-summary(TwoPL_itmsd)
-```
-
-## Final Item Covariate Model
-
-```{r 2PLItemCovFinalPlots}
-mcmc_plot(TwoPL_itmfn, type = "nuts_divergence")
-mcmc_plot(TwoPL_itmfn, type = "nuts_treedepth")
-mcmc_plot(TwoPL_itmfn, type = "trace", regex_pars = "b_")
-mcmc_plot(TwoPL_itmfn, type = "trace", regex_pars = "sd_")
-mcmc_plot(TwoPL_itmfn, type = "trace", regex_pars = "cor_")
-mcmc_plot(TwoPL_itmfn, type = "rhat_hist", binwidth = 0.0001)
-mcmc_plot(TwoPL_itmfn, type = "neff_hist", binwidth = 0.1)
-```
-
-The 2PL model with final reduction in the covariates demonstrated no evidence of estimation concerns that would raise concerns for the validity of the results. Since there are no validity concerns, we can look at the results from the model overall.
-
-```{r 2PLItemCovFinalResults}
-mcmc_plot(TwoPL_itmfn, type = "areas_ridges", prob = 0.80, prob_outer = 0.95, regex_pars = "b_")
-pp_check(TwoPL_itmfn, nsamples = 50, type = "bars")
-pp_check(TwoPL_itmfn, nsamples = 50, type = "bars_grouped", group = "Item")
-pp_check(TwoPL_itmfn, nsamples = 50, type = "bars_grouped", group = "ID", newdata = subset(df_long, df_long$ID %in% as.factor(sample.int(n = 1219, size = 6, replace = FALSE))))
-```
-
-Like the other 2PL models, this model estimates responses with high accuracy. The following general model summary integrates basic model validity statistics and posterior summaries for additional parameters. See the guide at the end of the Rasch intercept tab for details regarding the meaning of each value.
-
-```{r 2PLItemCovFinalSummary}
-summary(TwoPL_itmfn)
-```
-
-# Model Comparisons
-
-Since not all models were compared to one another, the results shown here are perhaps better contextualized by viewing it in the context of the modeling flowchart. To help with understanding the modeling choices, some discussion of how the model comparison results were interpreted and used to inform the next model fit is provided after each comparison. Again, the comparison of models was based on a combination of the LOOIC and pseudo-BMA. For those unfamiliar with these methods, some brief description of these criteria is provided here.
-
-The LOOIC (leave-one-out cross-validation information criterion) serves a similar function as other information criterion like the AIC or BIC. The LOOIC aims to estimate the expected log predictive density of a model fit on new data, or framed another way, the expected model performance in out-of-sample predictions. The computation of the LOOIC assumes that any single observation can be omitted without significantly altering the posterior distribution, which is where the idea of a leave-one-out criterion. Comparing LOOIC values thus directly compares models for their ability to predict out-of-sample estimates. Like other information criteria, a lower LOOIC corresponds to better model performance. An important caveat to the LOOIC is that `brms` and related *Stan* programs (e.g., `loo`) favor reporting the actual expected log predictive distribution (ELPD) differences rather than the more traditional information criterion statistic (-2*ELPD). The multiplication of the ELPD by -2 is done for historic reasons as this simple transformation causes the information criterion for follow a chi-squared distribution, making it possible to conduct likelihood ratio tests. In a Bayesian framework, access to the posterior permits direct comparison (e.g., $ELPD_{Model1}-ELPD_{Model2}$) since the standard error of the posterior of this difference can also be computed. Using that standard error, a "significant" difference in the model's performance can be found by $ELPD_{Diff} > 1.96\times{SE}$, or more informally by checking whether the difference in ELPD is at least twice as large as the standard error.
-
-The pseudo-BMA (Bayesian model averaging) is a form of model stacking/weighting/averaging. In this particular framework, the aim of the pseudo-BMA method is to weight models by their expected log predictive distribution. A model given greater weight would be preferred while models sharing similar weights would suggest non-superiority of any model.
-
-```{r Rasch2PLComp}
-ModelComparisons <- readRDS("ModelComparisons.rds")
-
-matrix(c(ModelComparisons$LOOIC$Comparison.1[, 1:2],
-         ModelComparisons$BMAs$Comparison.1[2:1]),
-       nrow = 2, ncol = 3, byrow = FALSE,
-       dimnames = list(c("2PL", "Rasch"), c("ELPD Difference", "Standard Error of Difference", "Pseudo-BMA Weight"))) %>%
-  kable(caption = "Comparison of the Rasch and 2PL Intercept Models", digits = c(2, 2, 59), align = 'ccc') %>%
-  kable_classic(full_width = FALSE, position = "float_right")
-```
-
-In the comparison of the Rasch and 2PL models, both the LOOIC and pseudo-BMA model weight agree that the 2PL model is preferable. As a quick clarification note, it may appear at first glance that the Rasch model had a smaller LOOIC since the ELPD difference listed for it is negative. It is important to remember that this difference always reflects the difference between the smaller ELPD from the larger ELPD. Since this is the arrangement, the negative value in the difference reflects that the 2PL model had a smaller ELPD than the Rasch model in the same way that the difference between 5 and 10 would be -5. The ELPD difference is about 8 times larger than the standard error of that difference, which supports that the difference is real. This is congruent with the pseudo-BMA weights wherein the 2PL is given essentially all the weight in the comparison of the two models.
-
-```{r 2PLintersComp}
-matrix(c(ModelComparisons$LOOIC$Comparison.2[, 1:2],
-         ModelComparisons$BMAs$Comparison.2[sapply(row.names(ModelComparisons$LOOIC$Comparison.2), function(x) {grep(x, attributes(ModelComparisons$BMAs$Comparison.2)$names)})]),
-       nrow = 5, ncol = 3, byrow = FALSE,
-       dimnames = list(c("Varying Trials, Fixed Intercept", "Varying Trials, Fixed and Random Intercept", "Trial 1, Fixed Intercept", "Trial 1, Fixed and Random Intercepts", "Fixed Trials, Fixed and Random Intercept"), c("ELPD Difference", "Standard Error of Difference", "Pseudo-BMA Weight"))) %>%
-  kable(caption = "Comparison of the 2PL Intercept Models", digits = c(2, 2, 2), align = 'ccc') %>%
-  kable_classic(full_width = FALSE, position = "float_right")
-```
-
-Comparing the various specifications of the intercept-only 2PL models also demonstrates clear concordance of the LOOIC and pseudo-BMA model weights. A model that allows items to vary over all three trials and specifies only a fixed (rather than a fixed and random) intercept for both difficulty and discrimination is the most preferred model.
-
-```{r 2PLinterDepComp}
-matrix(c(ModelComparisons$LOOIC$Comparison.3[, 1:2],
-         ModelComparisons$BMAs$Comparison.3[sapply(row.names(ModelComparisons$LOOIC$Comparison.3), function(x) {grep(x, attributes(ModelComparisons$BMAs$Comparison.3)$names)})]),
-       nrow = 2, ncol = 3, byrow = FALSE,
-       dimnames = list(c("Local Dependency", "Varying Trials, Fixed Intercept"), c("ELPD Difference", "Standard Error of Difference", "Pseudo-BMA Weight"))) %>%
-  kable(caption = "Comparison of the 2PL Intercept and Local Dependency Models", digits = c(2, 2, 2), align = 'ccc') %>%
-  kable_classic(full_width = FALSE, position = "float_right")
-```
-
-Comparing the preferred intercept model to one that includes the dependency of recalling items over trials, the LOOIC and pseudo-BMA weights support preferring the local dependency effect.
-
-```{r DepEasiComp}
-matrix(c(ModelComparisons$LOOIC$Comparison.4[, 1:2],
-         ModelComparisons$BMAs$Comparison.4[sapply(row.names(ModelComparisons$LOOIC$Comparison.4), function(x) {grep(x, attributes(ModelComparisons$BMAs$Comparison.4)$names)})]),
-       nrow = 2, ncol = 3, byrow = FALSE,
-       dimnames = list(c("Dependency on Easiness Only", "Local Dependency"), c("ELPD Difference", "Standard Error of Difference", "Pseudo-BMA Weight"))) %>%
-  kable(caption = "Comparison of the Local Dependency Model on both Parameters vs Easiness Only", digits = c(2, 2, 2), align = 'ccc') %>%
-  kable_classic(full_width = FALSE, position = "float_right")
-```
-
-Dropping the local dependency effect on items' discrimination parameter resulted in a preferred model by both the LOOIC and pseudo-BMA model weights. This indicates that items' discrimination varies across trials in the same manner regardless of whether a word was recalled earlier or not, suggesting that the item's position is more important for determining its discrimination. In contrast, recalling a word in an earlier trial does impact its easiness at a later trial.
-
-```{r DepSingComp}
-matrix(c(ModelComparisons$LOOIC$Comparison.5[, 1:2],
-         ModelComparisons$BMAs$Comparison.5[sapply(row.names(ModelComparisons$LOOIC$Comparison.5), function(x) {grep(x, attributes(ModelComparisons$BMAs$Comparison.5)$names)})]),
-       nrow = 2, ncol = 3, byrow = FALSE,
-       dimnames = list(c("Easiness Only", "Uniform Dependency"), c("ELPD Difference", "Standard Error of Difference", "Pseudo-BMA Weight"))) %>%
-  kable(caption = "Comparison of the Item-specific vs Uniform Local Dependency Models", digits = c(2, 2, 14), align = 'ccc') %>%
-  kable_classic(full_width = FALSE, position = "float_right")
-```
-
-Assuming a uniform dependency effect across all words resulted in poorer model performance per both the LOOIC and pseudo-BMA weights. This result indicates that there is a unique interaction between prior learning and the words themselves. If it was just the case that learning a word on a prior trial causes a certain change in its likelihood of being recalled later, then the uniform dependency effect would have been preferred. It appears instead that some words benefit from being learned earlier while others do not. This is consistent with the fact that not all of the word-specific local dependency effects are credibly different from zero in effect size.
-
-```{r DepLearnComp}
-matrix(c(ModelComparisons$LOOIC$Comparison.6[, 1:2],
-         ModelComparisons$BMAs$Comparison.6[sapply(row.names(ModelComparisons$LOOIC$Comparison.6), function(x) {grep(x, attributes(ModelComparisons$BMAs$Comparison.6)$names)})]),
-       nrow = 2, ncol = 3, byrow = FALSE,
-       dimnames = list(c("Local Dependency", "Learning/Growth"), c("ELPD Difference", "Standard Error of Difference", "Pseudo-BMA Weight"))) %>%
-  kable(caption = "Comparison of the Local Dependency and Learning Models", digits = c(2, 2, 3), align = 'ccc') %>%
-  kable_classic(full_width = FALSE, position = "float_right")
-```
-
-Comparing the local dependency model (with item-specific effects on easiness only) to a model that assumes a person-specific growth curve across the trials demonstrates that the dependency approach is preferred by both the LOOIC and pseudo-BMA weights. For clarification, the growth curve/learning model treats each trial as measuring a multidimensional trait that changes over trials (e.g., rather than a unidimensional "memory" trait this models something like a "learning" trait that grows over the three trials).
-
-```{r DepMultiComp}
-matrix(c(ModelComparisons$LOOIC$Comparison.7[, 1:2],
-         ModelComparisons$BMAs$Comparison.7[sapply(row.names(ModelComparisons$LOOIC$Comparison.7), function(x) {grep(x, attributes(ModelComparisons$BMAs$Comparison.7)$names)})]),
-       nrow = 2, ncol = 3, byrow = FALSE,
-       dimnames = list(c("Local Dependency", "Multidimensional"), c("ELPD Difference", "Standard Error of Difference", "Pseudo-BMA Weight"))) %>%
-  kable(caption = "Comparison of the Local Dependency and Multidimensional Models", digits = c(2, 2, 3), align = 'ccc') %>%
-  kable_classic(full_width = FALSE, position = "float_right")
-```
-
-Similarly, comparing the local dependency model to a model that assumes that each trial corresponds to its own oblique factor/trait reveals clear preference for the local dependency model. The results of this and the previous model comparisons suggest that the CERAD list learning test is perhaps best thought of as unidimensional with test-specific relationships between items. Part of the advantage of the local dependency effects is that they are dynamic and person-specific. In fact, the local dependency effects are actually more like a differential item functioning term as they are an interaction between the items and person. In other words, the expected item easiness for "Shore" on trial 3 will be different for a person who has previously recalled "Shore" on the other two trials versus someone who has not. The local dependency effects thus encode learning (i.e., values of the local dependency variable increase as a word is learned) and dynamic performance (i.e., the expectation for responses changes after each trial).
-
-```{r DepSPEComp}
-matrix(c(ModelComparisons$LOOIC$Comparison.8[, 1:2],
-         ModelComparisons$BMAs$Comparison.8[sapply(row.names(ModelComparisons$LOOIC$Comparison.8), function(x) {grep(x, attributes(ModelComparisons$BMAs$Comparison.8)$names)})]),
-       nrow = 2, ncol = 3, byrow = FALSE,
-       dimnames = list(c("Local Dependency", "Serial Position"), c("ELPD Difference", "Standard Error of Difference", "Pseudo-BMA Weight"))) %>%
-  kable(caption = "Comparison of the Local Dependency and Serial Position Models", digits = c(2, 2, 2), align = 'ccc') %>%
-  kable_classic(full_width = FALSE, position = "float_right")
-```
-
-Including a fixed effect for the order of presentation for the words did not result in a clearly superior model to the local dependency model. The LOOICs are not compellingly different between the two models, and in comparing the weights, the local dependency model receives about 2/3rds of the overall weight.
-
-```{r DepSPETrialsComp}
-matrix(c(ModelComparisons$LOOIC$Comparison.9[, 1:2],
-         ModelComparisons$BMAs$Comparison.9[sapply(row.names(ModelComparisons$LOOIC$Comparison.9), function(x) {grep(x, attributes(ModelComparisons$BMAs$Comparison.9)$names)})]),
-       nrow = 2, ncol = 3, byrow = FALSE,
-       dimnames = list(c("Local Dependency", "Serial Position by Trial"), c("ELPD Difference", "Standard Error of Difference", "Pseudo-BMA Weight"))) %>%
-  kable(caption = "Comparison of the Local Dependency and Serial Position (varying by trial) Models", digits = c(2, 2, 2), align = 'ccc') %>%
-  kable_classic(full_width = FALSE, position = "float_right")
-```
-
-When the serial position effect is permitted to vary by trial, the LOOIC and pseudo-BMA weights are more clearly in favor of the standard local dependency model specification. In reality, it was not assumed that including varying effects for item position by trial would improve model fit; instead, this model was fit in order to test whether the serial position effect was more obvious for a particular trial and hence may require special modeling. In this case, however, no such support was found. Shown here are the conditional effects plots for item position in both the serial position models:
-
-```{r SPEplots}
-conditional_effects(TwoPL_srlps, effects = "ItemPos")
-conditional_effects(TwoPL_t3spe, effects = "ItemPos:Time")
-```
-As is readily apparent from these plots, the item position demonstrates no clear quadratic curvature characteristic of the serial position effect. Similarly, the plots demonstrate that the position of the word on the list exerts no clear effect on recall probability. Allowing a unique effect for each trial also does not help as the final effect estimates are all nearly indistinguishable from one another.
-
-```{r DepExpComp}
-matrix(c(ModelComparisons$LOOIC$Comparison.10[, 1:2],
-         ModelComparisons$BMAs$Comparison.10[sapply(row.names(ModelComparisons$LOOIC$Comparison.10), function(x) {grep(x, attributes(ModelComparisons$BMAs$Comparison.10)$names)})]),
-       nrow = 2, ncol = 3, byrow = FALSE,
-       dimnames = list(c("Local Dependency", "All Item Covariates"), c("ELPD Difference", "Standard Error of Difference", "Pseudo-BMA Weight"))) %>%
-  kable(caption = "Comparison of the Local Dependency and Complete Item Covariates Models", digits = c(2, 2, 2), align = 'ccc') %>%
-  kable_classic(full_width = FALSE, position = "float_right")
-```
-
-Including all explanatory item covariates in the model did not produce better model fit than including only the item-specific dependency effects. This is not a surprising result as, while hypothesized to all be relevant, rarely is a model improved by include many predictors. As was demonstrated in the model summaries for the explanatory item covariates model in the previous section, many of the item-level predictors are not credibly different from zero, meaning that model performance could potentially be improved by removing some of these variables and searching for a more parsimonious model. At least one clear interpretation from the summary of the item covariate model was that, like the local dependency effects, these variables impacted only easiness, so moving forward, item effects for discrimination are not evaluated.
-
-```{r DepExpTrialsComp}
-matrix(c(ModelComparisons$LOOIC$Comparison.11[, 1:2],
-         ModelComparisons$BMAs$Comparison.11[sapply(row.names(ModelComparisons$LOOIC$Comparison.11), function(x) {grep(x, attributes(ModelComparisons$BMAs$Comparison.11)$names)})]),
-       nrow = 2, ncol = 3, byrow = FALSE,
-       dimnames = list(c("Local Dependency", "All Item Covariates by Trials"), c("ELPD Difference", "Standard Error of Difference", "Pseudo-BMA Weight"))) %>%
-  kable(caption = "Comparison of the Local Dependency and Item Covariates varying by Trial Models", digits = c(3, 2, 3), align = 'ccc') %>%
-  kable_classic(full_width = FALSE, position = "float_right")
-```
-
-Somewhat paradoxically, including more complex interactions seemingly improved overall model performance to being equivocal to the simpler local dependency model. Part of this is likely dropping the effects on discrimination. The unique part of explanatory item covariates is that they are essentially partitioning variance of a known effect (in this case item difficulty). As a result, item covariates are not adding explanatory power but instead explaining estimated parameters. In this way, significant overall improvement in the model is unlikely from adding item covariates since it is only adding complexity in most cases. Based on this, the more complex but equally performing item covariate model was taken for the next steps instead of the local dependency model. Regardless, the point of this model fit and comparison was to examine what effects might be relevant to include in a final model. Shown below are the conditional effects plots for the item covariate effects by trial:
-
-```{r ItmCovPlots}
-plot(conditional_effects(TwoPL_itmcp, effects = c("FreqSTX:Time", "Concrete:Time", "Density:Time", "Diversity:Time", "AoA:Time", "BOI:Time", "Phonemes:Time", "Ambiguous:Time", "NamingZ:Time")), ask = FALSE)
-```
-
-Using these plots and the posterior estimates of the coefficients, a new model specification reducing the number of item predictors and allowing some specific trial effects was developed. For the sake of transparency, predictors were considered if there was not a credible possibility that the effect was zero. The model's posterior summaries described in the previous section can be referenced to see which predictors included zero in their 95% credible intervals. Then, the determination of whether a unique trial effect was present was determined based on the plots. Consider the plots for Age of Acquisition (AoA). These plots make it clear that the estimated effect for AoA is negative in the first and second trials but then positive for the final trial.  Based on this visualization, it was determined to collapse the effect of AoA in trials 1 and 2 and then allow a different effect for trial 3.
-
-```{r ExpTrialsReducedComp}
-matrix(c(ModelComparisons$LOOIC$Comparison.12[, 1:2],
-         ModelComparisons$BMAs$Comparison.12[sapply(row.names(ModelComparisons$LOOIC$Comparison.12), function(x) {grep(x, attributes(ModelComparisons$BMAs$Comparison.12)$names)})]),
-       nrow = 2, ncol = 3, byrow = FALSE,
-       dimnames = list(c("All Item Covariates by Trials", "Reduced Item Covariates"), c("ELPD Difference", "Standard Error of Difference", "Pseudo-BMA Weight"))) %>%
-  kable(caption = "Comparison of the Complete Item Covariates varying by Trials and Reduced Item Covariate Models", digits = c(2, 2, 2), align = 'ccc') %>%
-  kable_classic(full_width = FALSE, position = "float_right")
-```
-
-The reduced model does not improve from the complicated model. From the perspective of the LOOIC, the models are similar to one another; however, the pseudo-BMA weights indicate that the complete model makes better predictions. To help understand why this might be the case, again the conditional effects plots can be examined:
-
-```{r ItmCovRdPlots}
-plot(conditional_effects(TwoPL_itmcr, effects = c("Concrete:Trial23", "BOI:Trial23", "Diversity:Trial23", "FreqHAL:Trial23", "AoA:Trial12")), ask = FALSE)
-```
-
-Some needed alterations to the model are clear from these plots. For example, the estimated effects for concreteness and body-object integration are clearly equivalent across all trials, which means that these variables are likely best summarized by a single effect across all trials. Where word frequency from the SUBTLEX database was not a significant predictor of word easiness, it appears that the frequency value from the HAL database does better. As can be confirmed in the previous section, this model finds that semantic diversity and AoA are both not credibly different than zero, so they can be reasonably dropped from the model. Of some note, which can again be confirmed in the model summary in the previous section, AoA does appear to be close to a credible effect with an upper credible interval bound of essentially zero.
-
-```{r ExpTrialsSimplifiedComp}
-matrix(c(ModelComparisons$LOOIC$Comparison.13[, 1:2],
-         ModelComparisons$BMAs$Comparison.13[sapply(row.names(ModelComparisons$LOOIC$Comparison.13), function(x) {grep(x, attributes(ModelComparisons$BMAs$Comparison.13)$names)})]),
-       nrow = 2, ncol = 3, byrow = FALSE,
-       dimnames = list(c("Simplified Item Covariates", "All Item Covariates by Trials"), c("ELPD Difference", "Standard Error of Difference", "Pseudo-BMA Weight"))) %>%
-  kable(caption = "Comparison of the Complete Item Covariates varying by Trials and Simplified Item Covariate Models", digits = c(2, 2, 2), align = 'ccc') %>%
-  kable_classic(full_width = FALSE, position = "float_right")
-```
-
-A simplified model that fit a single effect for concreteness and BOI, dropped AoA and semantic diversity, and used the HAL word frequency was estimated based on the above results. Compared to the model with all the item covariates varying by trials, this simplified model was largely identical with no preference indicated by ether the LOOIC or pseudo-BMA weights. In the interest of parsimony, the simplified model was taken for further comparisons. Recall that AoA had an effect that bordered on being credibly different than zero. Given the simplified model has fewer predictors, another model was fit returning AoA to see whether the removal of other predictors may clarify the effect of AoA.
-
-```{r FinalComp}
-matrix(c(ModelComparisons$LOOIC$Comparison.14[, 1:2],
-         ModelComparisons$BMAs$Comparison.14[sapply(row.names(ModelComparisons$LOOIC$Comparison.14), function(x) {grep(x, attributes(ModelComparisons$BMAs$Comparison.14)$names)})]),
-       nrow = 2, ncol = 3, byrow = FALSE,
-       dimnames = list(c("Final Model", "Simplified Item Covariates"), c("ELPD Difference", "Standard Error of Difference", "Pseudo-BMA Weight"))) %>%
-  kable(caption = "Comparison of the Final and Simplified Item Covariate Models", digits = c(2, 2, 2), align = 'ccc') %>%
-  kable_classic(full_width = FALSE, position = "float_right")
-```
-
-Adding back in AoA seems to cause no loss in parsimony per the LOOIC but does contribute to improvement in the predictions of the model. As can be confirmed in the previous section as well, the AoA effect is more clearly non-zero in the final model.
 
 # Final Model Details
 
@@ -899,7 +463,7 @@ person_fit %>%
   theme(text=element_text(family="Times", face="bold", size=12))
 ```
 
-These two plots show the empirical distribution of the differences in log-likelihood of the predicted and observed data under the models. The first plot is grouped by items and reflects the item fit. In an ideal model, the distribution is normally distributed with a mean of 0. These plots are manageable since there are only 10 items on the CERAD, but the same is not true for person fit, which has a total of 1219 individuals to show in a plot. To address the impracticality of plotting all of these individuals, the most extreme case (individual with worst fit) is shown. While the aim of this study was to examine predictors of item traits, it is still possible to visualize person traits (i.e., memory). The following plot shows the ordered distribution of latent trait estimates and their 95% credible intervals for each participant in the study:
+These two plots show the empirical distribution of the differences in log-likelihood of the predicted and observed data under the models. The first plot is grouped by items and reflects the item fit. In an ideal model, the distribution is normally distributed with a mean of 0. To address the impracticality of plotting all of these plots for each of 1219 participants, just the most extreme case (individual with worst fit) is shown. While the aim of this study was to examine predictors of item traits, it is still possible to visualize person traits (i.e., memory). The following plot shows the ordered distribution of latent trait estimates and their 95% credible intervals for each participant in the study:
 
 ```{r PersonPlots, echo = FALSE}
 person_pars <- readRDS("PersonEstimates.rds")
@@ -918,17 +482,17 @@ person_pars %>%
   theme(text=element_text(family="Times", face="bold", size=12))
 ```
 
-The plots demonstrate that, on the whole, the estimates of a person's latent trait is fairly wide. This is not entirely surprising given that the only estimate being given to the latent trait is a random intercept for each person. The explanatory item response theory model will be expanded in a future study to include factors that predict latent trait, which may reduce uncertainty in the latent trait measurement. The largest limiter to higher accuracy in the latent trait estimate is the fact that memory is being measured with just 10 items repeated only 3 times, so person predictors are likely not going to be a significant source of error reduction. Note as well that, like the item plots in the manuscript, these latent trait estimates do not include any effect of local dependency since this significantly increases the number of plots needed to characterize every possible combination of learned items over the 3 trials. It is also potentially useful to visualize all the conditional effects from the final model. These plots are shown next:
+The plots demonstrate that, on the whole, the estimates of a person's latent trait is fairly wide. This is not entirely surprising given that the only estimate being given to the latent trait is a random intercept for each person. The explanatory item response theory model will be expanded in a future study to include factors that predict latent trait, which may reduce uncertainty in the latent trait measurement. The largest limiter to higher accuracy in the latent trait estimate is the fact that memory is being measured with just 10 items repeated only 3 times, so person predictors are likely not going to be a significant source of error reduction. It is also potentially useful to visualize all the conditional effects from the final model. These plots are shown next:
 
 ```{r FinalConditionalEffects, echo = FALSE}
-plot(conditional_effects(TwoPL_itmfn), ask = FALSE)
+plot(conditional_effects(TwoPL_itmex), ask = FALSE)
 ```
 
-There are also some general test descriptives that are usually helpful to examine. These include test reliability, the expected score function, and test information. As with the other plots, these estimates are based on exclusion of the local dependency effects. The true values of these plots are thus only approximated by these plots. The following plots are these visualizations in their respective order:
+There are also some general test descriptives that are usually helpful to examine. These include test reliability, the expected score function, and test information. The following plots are these visualizations in their respective order:
 
 ```{r ExtraPlots, echo = FALSE}
-theta_est <- as.data.frame(ranef(TwoPL_itmfn, summary = TRUE)$ID)[, 1:2]
-var_theta <- as.numeric(VarCorr(TwoPL_itmfn)[[1]][[1]][1])
+theta_est <- as.data.frame(ranef(TwoPL_deptr, summary = TRUE)$ID)[, 1:2]
+var_theta <- as.numeric(VarCorr(TwoPL_deptr)[[1]][[1]][1])
 reliability_est <- var_theta/(var_theta + theta_est[, 2]^2)
 rel_dat <- data.frame(Theta = theta_est[, 1], Rxx = reliability_est)
 rm(theta_est, var_theta, reliability_est)
@@ -939,11 +503,219 @@ ggplot(data = rel_dat, aes(x = Theta, y = Rxx)) +
   theme_bw() +
   theme(text=element_text(family="Times", face="bold", size=12))
 
-ExpectedScore <- readRDS("ExpectedScoreFunction.rds")
-ExpectedScore + ylim(0, 30)
+fixed <- as.data.frame(fixef(TwoPL_deptr, summary = FALSE))
 
-Information <- readRDS("InformationFunction.rds")
-Information
+temp <- fixed %>%
+  select(contains("Item")) %>%
+  mutate(iter = 1:n()) %>%
+  pivot_longer(starts_with(c("beta_", "logalpha_"))) %>%
+  mutate(Item   = str_remove(name, "^beta_Item|^logalpha_Item"),
+         Parameter = ifelse(str_detect(name, "beta"), "Difficulty", "Discrimination")) %>%
+  select(-name) %>%
+  pivot_wider(names_from = Parameter, values_from = value) %>%
+  expand(nesting(iter, Item, Difficulty, Discrimination),
+         Theta = seq(-6, 6, length.out = 100)) %>%
+  mutate(p = inv_logit_scaled(Difficulty + exp(Discrimination) * Theta)) %>%
+  group_by(Theta, Item) %>%
+  summarise(ci = list(as.data.frame(posterior_summary(p)) %>% 
+                        rename(p = Estimate, ymin = Q2.5, ymax = Q97.5))) %>% 
+  unnest(cols = c(ci)) %>%
+  select(-Est.Error) %>%
+  mutate(Trial = rep(1:3, times = 10),
+         Item  = str_remove(Item, "\\d$"))
+
+fixed1 <- fixed
+fixed1[, 13:22] <- fixed[, 13:22]+fixed[, 1]
+fixed1[, 23:32] <- fixed[, 23:32]+fixed[, 2]
+fixed1[, 45:54] <- fixed[, 45:54]+fixed[, 33]
+fixed1[, 55:64] <- fixed[, 55:64]+fixed[, 34]
+
+temp1 <- fixed1 %>%
+  select(contains("Item")) %>%
+  mutate(iter = 1:n()) %>%
+  pivot_longer(starts_with(c("beta_", "logalpha_"))) %>%
+  mutate(Item   = str_remove(name, "^beta_Item|^logalpha_Item"),
+         Parameter = ifelse(str_detect(name, "beta"), "Difficulty", "Discrimination")) %>%
+  select(-name) %>%
+  pivot_wider(names_from = Parameter, values_from = value) %>%
+  expand(nesting(iter, Item, Difficulty, Discrimination),
+         Theta = seq(-6, 6, length.out = 100)) %>%
+  mutate(p = inv_logit_scaled(Difficulty + exp(Discrimination) * Theta)) %>%
+  group_by(Theta, Item) %>%
+  summarise(ci = list(as.data.frame(posterior_summary(p)) %>% 
+                        rename(p = Estimate, ymin = Q2.5, ymax = Q97.5))) %>% 
+  unnest(cols = c(ci)) %>%
+  select(-Est.Error) %>%
+  mutate(Trial = rep(1:3, times = 10),
+         Item  = str_remove(Item, "\\d$"))
+
+ICCpars <- rbind(temp, temp1)
+ICCpars$Dependency <- rep(c("No Prior Recall", "Previous Recall"), each = 3000)
+ICCpars <- ICCpars[, c(6, 2, 1, 3, 4:5, 7)]
+
+TESpars <- ICCpars %>%
+  group_by(Theta, Trial, Dependency) %>%
+  summarise(Expected = sum(p))
+
+TESpars[TESpars$Trial == 1 & TESpars$Dependency == "No Prior Recall", ] %>%
+  ggplot(aes(x = Theta, y = Expected)) +
+  geom_line(size = 1.05) +
+  labs(title = "Expected Score Function for Trial 1",
+       x = expression(theta~('ability on the logit scale')),
+       y = "Expected Raw Score") +
+  ylim(0, 10) +
+  theme_classic()
+
+TESpars[TESpars$Trial == 2, ] %>%
+  ggplot(aes(x = Theta, y = Expected, linetype = Dependency)) +
+  geom_line(size = 1.05) +
+  labs(title = "Expected Score Function for Trial 2",
+       x = expression(theta~('ability on the logit scale')),
+       y = "Expected Raw Score") +
+  ylim(0, 10) +
+  theme_classic()
+
+TESpars[TESpars$Trial == 3, ] %>%
+  ggplot(aes(x = Theta, y = Expected, linetype = Dependency)) +
+  geom_line(size = 1.05) +
+  labs(title = "Expected Score Function for Trial 3",
+       x = expression(theta~('ability on the logit scale')),
+       y = "Expected Raw Score") +
+  ylim(0, 10) +
+  theme_classic()
+
+temp <- fixed %>%
+  select(contains("Item")) %>%
+  mutate(iter = 1:n()) %>%
+  pivot_longer(starts_with(c("beta_", "logalpha_"))) %>%
+  mutate(Item   = str_remove(name, "^beta_Item|^logalpha_Item"),
+         Parameter = ifelse(str_detect(name, "beta"), "Difficulty", "Discrimination")) %>%
+  select(-name) %>%
+  pivot_wider(names_from = Parameter, values_from = value) %>%
+  expand(nesting(iter, Item, Difficulty, Discrimination),
+         Theta = seq(-6, 6, length.out = 100)) %>%
+  mutate(p = inv_logit_scaled(Difficulty + exp(Discrimination) * Theta)) %>%
+  mutate(i = p * (1 - p)) %>% 
+  group_by(Theta, Item) %>% 
+  summarise(ci = list(as.data.frame(posterior_summary(i)) %>% 
+                        rename(i = Estimate, ymin = Q2.5, ymax = Q97.5))) %>% 
+  unnest(cols = c(ci)) %>%
+  select(-Est.Error) %>%
+  mutate(Trial = rep(1:3, times = 10),
+         Item  = str_remove(Item, "\\d$"))
+
+temp1 <- fixed1 %>%
+  select(contains("Item")) %>%
+  mutate(iter = 1:n()) %>%
+  pivot_longer(starts_with(c("beta_", "logalpha_"))) %>%
+  mutate(Item   = str_remove(name, "^beta_Item|^logalpha_Item"),
+         Parameter = ifelse(str_detect(name, "beta"), "Difficulty", "Discrimination")) %>%
+  select(-name) %>%
+  pivot_wider(names_from = Parameter, values_from = value) %>%
+  expand(nesting(iter, Item, Difficulty, Discrimination),
+         Theta = seq(-6, 6, length.out = 100)) %>%
+  mutate(p = inv_logit_scaled(Difficulty + exp(Discrimination) * Theta)) %>%
+  mutate(i = p * (1 - p)) %>% 
+  group_by(Theta, Item) %>% 
+  summarise(ci = list(as.data.frame(posterior_summary(i)) %>% 
+                        rename(i = Estimate, ymin = Q2.5, ymax = Q97.5))) %>% 
+  unnest(cols = c(ci)) %>%
+  select(-Est.Error) %>%
+  mutate(Trial = rep(1:3, times = 10),
+         Item  = str_remove(Item, "\\d$"))
+
+IICpars <- rbind(temp, temp1)
+IICpars$Dependency <- rep(c("No Prior Recall", "Previous Recall"), each = 3000)
+IICpars <- IICpars[, c(6, 2, 1, 3, 4:5, 7)]
+
+IICpars[IICpars$Trial == 1 & IICpars$Dependency == "No Prior Recall", ] %>%
+  mutate(Item = factor(Item, levels = c("Butter", "Arm", "Shore", "Letter", "Queen", "Cabin", "Pole", "Ticket", "Grass", "Engine"))) %>%
+  ggplot(aes(x = Theta, y = i)) +
+  geom_line(size = 1.05) +
+  geom_ribbon(aes(ymin = ymin, ymax = ymax), alpha = 0.25) +
+  facet_wrap(~ Item, ncol = 5) +
+  labs(title = "IICs for the 2PL",
+       subtitle = "Each curve is based on the posterior median.", 
+       x = expression(theta~('ability on the logit scale')),
+       y = "Information") +
+  theme_classic()
+
+IICpars[IICpars$Trial == 2, ] %>%
+  mutate(Item = factor(Item, levels = c("Ticket", "Cabin", "Butter", "Shore", "Engine", "Arm", "Queen", "Letter", "Pole", "Grass"))) %>%
+  ggplot(aes(x = Theta, y = i, linetype = Dependency)) +
+  geom_line(size = 1.05) +
+  geom_ribbon(aes(ymin = ymin, ymax = ymax), alpha = 0.25) +
+  facet_wrap(~ Item, ncol = 5) +
+  labs(title = "IICs for the 2PL",
+       subtitle = "Each curve is based on the posterior median.", 
+       x = expression(theta~('ability on the logit scale')),
+       y = "Information") +
+  theme_classic()
+  
+IICpars[IICpars$Trial == 3, ] %>%
+  mutate(Item = factor(Item, levels = c("Queen", "Grass", "Arm", "Cabin", "Pole", "Shore", "Butter", "Engine", "Ticket", "Letter"))) %>%
+  ggplot(aes(x = Theta, y = i, linetype = Dependency)) +
+  geom_line(size = 1.05) +
+  geom_ribbon(aes(ymin = ymin, ymax = ymax), alpha = 0.25) +
+  facet_wrap(~ Item, ncol = 5) +
+  labs(title = "IICs for the 2PL",
+       subtitle = "Each curve is based on the posterior median.", 
+       x = expression(theta~('ability on the logit scale')),
+       y = "Information") +
+  theme_classic()
+
+temp <- fixed %>%
+  select(contains("Item")) %>%
+  mutate(iter = 1:n()) %>%
+  pivot_longer(starts_with(c("beta_", "logalpha_"))) %>%
+  mutate(Item   = str_remove(name, "^beta_Item|^logalpha_Item"),
+         Parameter = ifelse(str_detect(name, "beta"), "Difficulty", "Discrimination")) %>%
+  select(-name) %>%
+  pivot_wider(names_from = Parameter, values_from = value) %>%
+  expand(nesting(iter, Item, Difficulty, Discrimination),
+         Theta = seq(-6, 6, length.out = 100)) %>%
+  mutate(p = inv_logit_scaled(Difficulty + exp(Discrimination) * Theta)) %>%
+  mutate(i = p * (1 - p)) %>% 
+  group_by(Theta, iter) %>% 
+  summarise(sum_i = sum(i)) %>% 
+  group_by(Theta) %>% 
+  summarise(ci = list(as.data.frame(posterior_summary(sum_i)) %>% 
+                        rename(i = Estimate, ymin = Q2.5, ymax = Q97.5))) %>% 
+  unnest(cols = c(ci)) %>%
+  select(-Est.Error)
+
+temp1 <- fixed1 %>%
+  select(contains("Item")) %>%
+  mutate(iter = 1:n()) %>%
+  pivot_longer(starts_with(c("beta_", "logalpha_"))) %>%
+  mutate(Item   = str_remove(name, "^beta_Item|^logalpha_Item"),
+         Parameter = ifelse(str_detect(name, "beta"), "Difficulty", "Discrimination")) %>%
+  select(-name) %>%
+  pivot_wider(names_from = Parameter, values_from = value) %>%
+  expand(nesting(iter, Item, Difficulty, Discrimination),
+         Theta = seq(-6, 6, length.out = 100)) %>%
+  mutate(p = inv_logit_scaled(Difficulty + exp(Discrimination) * Theta)) %>%
+  mutate(i = p * (1 - p)) %>% 
+  group_by(Theta, iter) %>% 
+  summarise(sum_i = sum(i)) %>% 
+  group_by(Theta) %>% 
+  summarise(ci = list(as.data.frame(posterior_summary(sum_i)) %>% 
+                        rename(i = Estimate, ymin = Q2.5, ymax = Q97.5))) %>% 
+  unnest(cols = c(ci)) %>%
+  select(-Est.Error)
+
+IICtest <- rbind(temp, temp1)
+IICtest$Dependency <- rep(c("No Prior Recall", "Previous Recall"), each = 100)
+
+IICtest %>%
+  ggplot(aes(x = Theta, y = i, linetype = Dependency)) +
+  geom_line(size = 1.05) +
+  geom_ribbon(aes(ymin = ymin, ymax = ymax), alpha = 0.25) +
+  labs(title = "IIC for the 2PL",
+       subtitle = "Curve is based on the posterior median.", 
+       x = expression(theta~('ability on the logit scale')),
+       y = "Information") +
+  theme_classic()
 ```
 
 Within IRT, information and reliability are very closely related. It is clear that these plots both have generally the same shape with peaks in their functions around slightly below average scores. As is clear from both of these scales, the CERAD word list is not ideal for measuring individuals with either very low or very high memory abilities. In dementia/mild cognitive impairment research, this particular trait may be favorable as the goal is often to characterize with greater precision mildly impaired memory with relatively little need for carefully measuring extremes. The expected score function is a useful visual analogue for the relationship between raw score and latent trait estimate. The relationship is clearly monotonic and overall very gradual, which means that the raw scores do span a relatively wide range of latent trait values.
