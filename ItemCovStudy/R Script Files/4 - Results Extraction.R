@@ -173,6 +173,6 @@ person_fit %>%
   geom_histogram() +
   theme_hist() +
   theme(text=element_text(family="Times", face="bold", size=12)) #show result from maximum statistic
-sum(ifelse(person_diff[, 2] < .05, 1, 0)) #count number of person misfits using a Bayesian p-value of < .05
-#24 < .05 or 1.97% of total sample
+sum(ifelse(person_diff[, 2] > .95, 1, 0)) #count number of person misfits using a Bayesian p-value of < .05
+#51 > .95 or 4.18% of total sample
 saveRDS(person_fit, "PersonFit.rds")
