@@ -114,12 +114,12 @@ plot(TwoPL_chnge)
 #run growth/learning model
 TwoPL_learn <- brm(bf(Resp ~ beta + exp(logalpha) * theta,
                       nl = TRUE, decomp = "QR",
-                      theta ~ 0 + (-1 + Time.n | ID) + (-1 + Trial1 | ID) + (-1 + Trial2 | ID) + (-1 + Trial3 | ID),
+                      theta ~ 0 + (1 + Time.n | ID) + (-1 + Trial1 | ID) + (-1 + Trial2 | ID) + (-1 + Trial3 | ID),
                       beta ~ 0 + Item,
                       logalpha ~ 0 + Item),
                    data = df_long, family = brmsfamily("bernoulli", link = "logit"),
                    prior = TwoPL_priors_fixed, seed = SEED, iter = 3000, warmup = 1000,
-                   sample_prior = "no", control = list(adapt_delta = 0.95), #brms error occurs with sample_prior = "yes" (returns that 'prior_sd_ID' is duplicate value, old brms bug that can occur in non-linear models when including prior samples) -- prior samples not needed for this model anyway
+                   sample_prior = "no", control = list(adapt_delta = 0.99), #brms error occurs with sample_prior = "yes" (returns that 'prior_sd_ID' is duplicate value, old brms bug that can occur in non-linear models when including prior samples) -- prior samples not needed for this model anyway
                    file = "Fitted Models/2PL_growthModel")
 
 TwoPL_learn <- add_criterion(TwoPL_learn, criterion = "loo")
@@ -222,17 +222,19 @@ LooCom5 <- loo_compare(TwoPL_depmd, TwoPL_deptr)
 ModWgt5 <- model_weights(TwoPL_depmd, TwoPL_deptr, weights = "stacking")
 
 tiff("PPC_all.tiff", width = 4, height = 3, units = 'in', res = 1200)
-pp_check(TwoPL_deptr, ndraws = 100, type = "bars")
+pp_check(TwoPL_deptr, ndraws = 100, type = "bars") + theme(legend.position="bottom")
 dev.off()
 
 tiff("PPC_items.tiff", width = 10, height = 10, units = 'in', res = 1200)
 pp_check(TwoPL_deptr, ndraws = 100, type = "bars_grouped", group = "Item") +
-  facet_wrap(ncol = 5, "group", labeller = as_labeller(c("Butter1" = "Trial 1: Butter", "Arm1" = "Trial 1: Arm", "Shore1" = "Trial 1: Shore", "Letter1" = "Trial 1: Letter", "Queen1" = "Trial 1: Queen", "Cabin1" = "Trial 1: Cabin", "Pole1" = "Trial 1: Pole", "Ticket1" = "Trial 1: Ticket", "Grass1" = "Trial 1: Grass", "Engine1" = "Trial 1: Engine", "Ticket2" = "Trial 2: Ticket", "Cabin2" = "Trial 2: Cabin", "Butter2" = "Trial 2: Butter", "Shore2" = "Trial 2: Shore", "Engine2" = "Trial 2: Engine", "Arm2" = "Trial 2: Arm", "Queen2" = "Trial 2: Queen", "Letter2" = "Trial 2: Letter", "Pole2" = "Trial 2: Pole", "Grass2" = "Trial 2: Grass", "Queen3" = "Trial 3: Queen", "Grass3" = "Trial 3: Grass", "Arm3" = "Trial 3: Arm", "Cabin3" = "Trial 3: Cabin", "Pole3" = "Trial 3: Pole", "Shore3" = "Trial 3: Shore", "Butter3" = "Trial 3: Butter", "Engine3" = "Trial 3: Engine", "Ticket3" = "Trial 3: Ticket", "Letter3" = "Trial 3: Letter")))
+  facet_wrap(ncol = 5, "group", labeller = as_labeller(c("Butter1" = "Trial 1: Butter", "Arm1" = "Trial 1: Arm", "Shore1" = "Trial 1: Shore", "Letter1" = "Trial 1: Letter", "Queen1" = "Trial 1: Queen", "Cabin1" = "Trial 1: Cabin", "Pole1" = "Trial 1: Pole", "Ticket1" = "Trial 1: Ticket", "Grass1" = "Trial 1: Grass", "Engine1" = "Trial 1: Engine", "Ticket2" = "Trial 2: Ticket", "Cabin2" = "Trial 2: Cabin", "Butter2" = "Trial 2: Butter", "Shore2" = "Trial 2: Shore", "Engine2" = "Trial 2: Engine", "Arm2" = "Trial 2: Arm", "Queen2" = "Trial 2: Queen", "Letter2" = "Trial 2: Letter", "Pole2" = "Trial 2: Pole", "Grass2" = "Trial 2: Grass", "Queen3" = "Trial 3: Queen", "Grass3" = "Trial 3: Grass", "Arm3" = "Trial 3: Arm", "Cabin3" = "Trial 3: Cabin", "Pole3" = "Trial 3: Pole", "Shore3" = "Trial 3: Shore", "Butter3" = "Trial 3: Butter", "Engine3" = "Trial 3: Engine", "Ticket3" = "Trial 3: Ticket", "Letter3" = "Trial 3: Letter"))) + 
+  theme(legend.position="bottom")
 dev.off()
 
 tiff("PPC_persons.tiff", width = 8, height = 5, units = 'in', res = 1200)
 pp_check(TwoPL_deptr, ndraws = 100, type = "bars_grouped", group = "ID", 
-         newdata = subset(df_long, df_long$ID %in% as.factor(sample.int(n = 1219, size = 12, replace = FALSE))))
+         newdata = subset(df_long, df_long$ID %in% as.factor(sample.int(n = 1219, size = 12, replace = FALSE)))) +
+  theme(legend.position="bottom")
 dev.off()
 
 plot(TwoPL_deptr)
